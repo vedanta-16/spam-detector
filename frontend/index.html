@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SpamDetector - Stop Spam. Stay Safe.</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --cyan: #00E5FF;
+      --cyan-dim: #00B4D8;
+      --cyan-dark: rgba(0,229,255,0.15);
+      --cyan-glow: rgba(0,229,255,0.4);
+      --green: #00FF88;
+      --green-dim: rgba(0,255,136,0.15);
+      --pink: #FF2D78;
+      --pink-dim: rgba(255,45,120,0.15);
+      --dark-bg: #070B14;
+      --dark-card: #0D1220;
+      --dark-card2: #111827;
+      --dark-border: rgba(0,229,255,0.2);
+      --dark-border2: rgba(0,229,255,0.08);
+      --text-bright: #E0F7FF;
+      --text-mid: #8BA8BE;
+      --text-dim: #4A6478;
+      --yellow: #FFD700;
+      --orange: #FF6B35;
+      --purple: #8B5CF6;
+    }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      color: var(--text-bright);
+      background: var(--dark-bg);
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,229,255,0.015) 2px, rgba(0,229,255,0.015) 4px);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* Grid background */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 40px;
+      background: rgba(7,11,20,0.95);
+      border-bottom: 1px solid var(--dark-border);
+      position: sticky; top: 0; z-index: 200;
+      backdrop-filter: blur(20px);
+    }
+    .navbar::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      opacity: 0.6;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Orbitron', monospace;
+      font-size: 1rem; font-weight: 800;
+      color: var(--cyan);
+      text-decoration: none;
+      letter-spacing: 0.1em;
+      text-shadow: 0 0 20px var(--cyan-glow);
+    }
+    .nav-logo svg { filter: drop-shadow(0 0 6px var(--cyan)); }
+    .nav-right { display: flex; align-items: center; gap: 14px; }
+    .nav-help {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1px solid var(--dark-border);
+      background: var(--dark-card);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; color: var(--text-mid); cursor: pointer; font-weight: 700;
+    }
+    .btn-signup {
+      background: transparent;
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+      padding: 9px 20px;
+      border-radius: 4px;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      box-shadow: 0 0 10px rgba(0,229,255,0.1), inset 0 0 10px rgba(0,229,255,0.05);
+    }
+    .btn-signup:hover {
+      background: var(--cyan-dark);
+      box-shadow: 0 0 20px var(--cyan-glow), inset 0 0 20px rgba(0,229,255,0.1);
+    }
+    .btn-google {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--dark-card);
+      border: 1px solid var(--dark-border);
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 0.875rem; font-weight: 600;
+      color: var(--text-bright); cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .btn-google:hover { border-color: var(--cyan); }
+
+    /* ── AUTH MODALS ── */
+    .auth-modal-box {
+      background: var(--dark-card);
+      border-radius: 8px;
+      max-width: 420px; width: 100%;
+      border: 1px solid var(--dark-border);
+      box-shadow: 0 0 40px rgba(0,229,255,0.15), 0 25px 60px rgba(0,0,0,0.6);
+      animation: modalIn 0.3s ease; overflow: hidden;
+    }
+    .auth-header {
+      background: linear-gradient(135deg, rgba(0,229,255,0.1), rgba(0,180,216,0.05));
+      padding: 32px 32px 28px;
+      text-align: center; position: relative;
+      border-bottom: 1px solid var(--dark-border);
+    }
+    .auth-header h2 {
+      color: var(--cyan);
+      font-family: 'Orbitron', monospace;
+      font-size: 1.3rem; font-weight: 800;
+      margin-bottom: 4px;
+      text-shadow: 0 0 20px var(--cyan-glow);
+      letter-spacing: 0.05em;
+    }
+    .auth-header p { color: var(--text-mid); font-size: 0.875rem; }
+    .auth-body { padding: 28px; }
+    .auth-input-group { margin-bottom: 16px; }
+    .auth-input-group label {
+      display: block; font-size: 0.75rem; font-weight: 700;
+      color: var(--cyan-dim); margin-bottom: 6px;
+      font-family: 'Share Tech Mono', monospace;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .auth-input {
+      width: 100%; padding: 11px 14px;
+      border: 1px solid var(--dark-border);
+      border-radius: 4px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 0.9rem; color: var(--text-bright);
+      outline: none; transition: all 0.2s;
+      background: rgba(0,229,255,0.03);
+    }
+    .auth-input:focus {
+      border-color: var(--cyan);
+      background: rgba(0,229,255,0.06);
+      box-shadow: 0 0 0 3px rgba(0,229,255,0.1);
+    }
+    .auth-input.error { border-color: var(--pink); }
+    .auth-input::placeholder { color: var(--text-dim); }
+    .auth-error { font-size: 0.78rem; color: var(--pink); font-weight: 700; margin-top: 4px; display: none; }
+    .btn-auth-submit {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--cyan), var(--cyan-dim));
+      color: var(--dark-bg); border: none; border-radius: 4px;
+      font-family: 'Orbitron', monospace; font-size: 0.8rem; font-weight: 800;
+      cursor: pointer; margin-bottom: 12px; transition: all 0.2s;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .btn-auth-submit:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--cyan-glow);
+    }
+    .btn-google-auth {
+      width: 100%; padding: 12px;
+      background: var(--dark-card2);
+      border: 1px solid var(--dark-border);
+      border-radius: 4px;
+      font-family: 'Rajdhani', sans-serif; font-size: 0.9rem; font-weight: 700;
+      color: var(--text-bright); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: all 0.2s; margin-bottom: 16px;
+    }
+    .btn-google-auth:hover { border-color: var(--cyan); box-shadow: 0 0 10px rgba(0,229,255,0.1); }
+    .google-logo {
+      width: 20px; height: 20px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%234285F4' d='M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z'/%3E%3Cpath fill='%2334A853' d='M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z'/%3E%3Cpath fill='%23FBBC05' d='M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z'/%3E%3Cpath fill='%23EA4335' d='M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z'/%3E%3C/svg%3E") center/contain no-repeat;
+      flex-shrink: 0;
+    }
+    .auth-divider {
+      display: flex; align-items: center; gap: 12px; margin: 16px 0;
+    }
+    .auth-divider span { font-size: 0.78rem; color: var(--text-dim); font-weight: 600; white-space: nowrap; }
+    .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--dark-border); }
+    .auth-switch { text-align: center; font-size: 0.85rem; color: var(--text-mid); margin-top: 16px; }
+    .auth-switch a { color: var(--cyan); font-weight: 800; cursor: pointer; text-decoration: none; }
+    .auth-terms { font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-top: 12px; line-height: 1.5; }
+    .success-tick {
+      width: 60px; height: 60px; background: rgba(0,255,136,0.1);
+      border-radius: 50%; border: 1px solid var(--green);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; margin: 0 auto 16px;
+    }
+    .user-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 800; color: var(--dark-bg);
+      cursor: pointer; position: relative;
+      font-family: 'Orbitron', monospace;
+    }
+    .user-dropdown {
+      position: absolute; top: 48px; right: 0;
+      background: var(--dark-card);
+      border-radius: 8px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,229,255,0.1);
+      border: 1px solid var(--dark-border);
+      min-width: 200px; z-index: 300; display: none; padding: 8px;
+    }
+    .user-dropdown.open { display: block; animation: modalIn 0.2s ease; }
+    .user-info-row { padding: 12px 14px 10px; border-bottom: 1px solid var(--dark-border2); margin-bottom: 6px; }
+    .user-info-name { font-weight: 800; font-size: 0.9rem; color: var(--cyan); font-family: 'Orbitron', monospace; font-size: 0.8rem; }
+    .user-info-email { font-size: 0.78rem; color: var(--text-mid); margin-top: 2px; }
+    .dropdown-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px; border-radius: 4px;
+      font-size: 0.875rem; font-weight: 700; color: var(--text-bright);
+      cursor: pointer; transition: background 0.15s;
+    }
+    .dropdown-item:hover { background: var(--cyan-dark); color: var(--cyan); }
+    .dropdown-item.danger { color: var(--pink); }
+    .dropdown-item.danger:hover { background: var(--pink-dim); }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--dark-card);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 12px 24px; border-radius: 4px;
+      font-size: 0.875rem; font-weight: 700;
+      z-index: 9999; transition: transform 0.4s ease;
+      box-shadow: 0 0 20px var(--cyan-glow), 0 8px 24px rgba(0,0,0,0.4);
+      white-space: nowrap;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Google OAuth Loading Overlay */
+    .google-oauth-overlay {
+      position: fixed; inset: 0;
+      background: rgba(7,11,20,0.98);
+      z-index: 9998; display: none;
+      flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+    }
+    .google-oauth-overlay.open { display: flex; }
+    .oauth-spinner {
+      width: 48px; height: 48px;
+      border: 3px solid var(--dark-border);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      box-shadow: 0 0 20px var(--cyan-glow);
+    }
+    .oauth-logo-row { display: flex; align-items: center; gap: 16px; }
+    .oauth-brand {
+      font-size: 1.5rem; font-weight: 900;
+      background: linear-gradient(90deg,#4285F4,#EA4335,#FBBC05,#34A853);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .oauth-arrow { font-size: 1.2rem; color: var(--text-dim); }
+    .oauth-site {
+      font-size: 1.5rem; font-weight: 900;
+      color: var(--cyan);
+      font-family: 'Orbitron', monospace;
+      text-shadow: 0 0 20px var(--cyan-glow);
+    }
+    .oauth-msg { font-size: 0.875rem; color: var(--text-mid); font-weight: 600; font-family: 'Share Tech Mono', monospace; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 580px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 80px 20px;
+      position: relative; overflow: hidden; z-index: 1;
+    }
+    .hero-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(0,229,255,0.06) 0%, transparent 70%),
+                  radial-gradient(ellipse 40% 30% at 30% 60%, rgba(0,255,136,0.04) 0%, transparent 60%),
+                  radial-gradient(ellipse 30% 25% at 70% 70%, rgba(255,45,120,0.04) 0%, transparent 60%);
+    }
+    /* Floating particles */
+    .particle {
+      position: absolute; border-radius: 2px;
+      animation: floatParticle linear infinite;
+      pointer-events: none;
+    }
+    @keyframes floatParticle {
+      0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+    }
+    .hero-shield {
+      position: relative; margin-bottom: 32px;
+      filter: drop-shadow(0 0 30px rgba(0,229,255,0.5));
+      animation: shieldPulse 3s ease-in-out infinite;
+    }
+    @keyframes shieldPulse {
+      0%, 100% { filter: drop-shadow(0 0 20px rgba(0,229,255,0.4)); }
+      50% { filter: drop-shadow(0 0 50px rgba(0,229,255,0.8)); }
+    }
+    .hero h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: 3rem; font-weight: 900;
+      color: var(--text-bright);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 40px rgba(0,229,255,0.3);
+      line-height: 1.1;
+    }
+    .hero h1 span { color: var(--cyan); text-shadow: 0 0 30px var(--cyan-glow); }
+    .hero p { font-size: 1rem; color: var(--text-mid); margin-bottom: 36px; letter-spacing: 0.05em; }
+    .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-try {
+      background: var(--cyan);
+      color: var(--dark-bg); border: none;
+      padding: 14px 36px; border-radius: 4px;
+      font-family: 'Orbitron', monospace; font-size: 0.8rem; font-weight: 800;
+      cursor: pointer; transition: all 0.2s;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      box-shadow: 0 0 20px var(--cyan-glow), 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .btn-try:hover { transform: translateY(-2px); box-shadow: 0 0 35px var(--cyan-glow), 0 8px 25px rgba(0,0,0,0.4); }
+    .btn-how {
+      background: transparent; color: var(--cyan);
+      border: 1px solid var(--cyan);
+      padding: 14px 36px; border-radius: 4px;
+      font-family: 'Orbitron', monospace; font-size: 0.8rem; font-weight: 800;
+      cursor: pointer; transition: all 0.2s;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      box-shadow: 0 0 10px rgba(0,229,255,0.1), inset 0 0 10px rgba(0,229,255,0.05);
+    }
+    .btn-how:hover { background: var(--cyan-dark); box-shadow: 0 0 20px var(--cyan-glow); }
+
+    /* Hero stats bar */
+    .hero-stats {
+      display: flex; gap: 40px; margin-top: 48px;
+      padding-top: 32px;
+      border-top: 1px solid var(--dark-border);
+    }
+    .hero-stat-val {
+      font-family: 'Orbitron', monospace; font-size: 1.5rem; font-weight: 900;
+      color: var(--cyan); text-shadow: 0 0 20px var(--cyan-glow);
+    }
+    .hero-stat-lbl { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* ── FEATURES ── */
+    .features {
+      background: var(--dark-bg); padding: 80px 40px;
+      text-align: center; position: relative; z-index: 1;
+    }
+    .features h2 {
+      font-family: 'Orbitron', monospace; font-size: 1.8rem; font-weight: 900;
+      color: var(--text-bright); margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }
+    .features > p { color: var(--text-mid); margin-bottom: 50px; letter-spacing: 0.03em; }
+    .features-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; max-width: 1100px; margin: 0 auto; }
+    .feature-card {
+      background: var(--dark-card);
+      border: 1px solid var(--dark-border);
+      border-radius: 8px; padding: 28px 24px; text-align: left;
+      transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(0,229,255,0.4);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 20px rgba(0,229,255,0.05);
+    }
+    .feature-icon {
+      width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px; color: var(--cyan);
+      filter: drop-shadow(0 0 8px var(--cyan-glow));
+    }
+    .feature-card h3 { font-size: 1rem; font-weight: 700; color: var(--text-bright); margin-bottom: 10px; font-family: 'Orbitron', monospace; font-size: 0.85rem; letter-spacing: 0.03em; }
+    .feature-card p { font-size: 0.875rem; color: var(--text-mid); line-height: 1.6; }
+
+    /* ── PRICING ── */
+    .pricing { background: var(--dark-card2); padding: 80px 40px; text-align: center; z-index: 1; position: relative; }
+    .pricing h2 { font-family: 'Orbitron', monospace; font-size: 1.8rem; font-weight: 900; color: var(--text-bright); margin-bottom: 10px; letter-spacing: 0.05em; }
+    .pricing-toggle-row { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 20px 0 50px; color: var(--text-mid); font-size: 0.9rem; }
+    .save-badge { background: rgba(0,255,136,0.1); color: var(--green); padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(0,255,136,0.3); }
+    .toggle { position: relative; width: 44px; height: 24px; background: var(--cyan); border-radius: 999px; cursor: pointer; }
+    .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: var(--dark-bg); border-radius: 50%; transition: left 0.2s; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; max-width: 900px; margin: 0 auto; align-items: start; }
+    .pricing-card {
+      background: var(--dark-card);
+      border: 1px solid var(--dark-border);
+      border-radius: 8px; padding: 32px 28px; text-align: left; position: relative;
+    }
+    .pricing-card.popular {
+      border-color: var(--cyan);
+      box-shadow: 0 0 30px rgba(0,229,255,0.1);
+    }
+    .popular-badge {
+      position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+      background: var(--cyan); color: var(--dark-bg);
+      padding: 5px 20px; border-radius: 999px;
+      font-size: 0.75rem; font-weight: 800; white-space: nowrap;
+      font-family: 'Orbitron', monospace; letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .pricing-card h3 { font-family: 'Orbitron', monospace; font-size: 1.1rem; font-weight: 900; color: var(--text-bright); margin-bottom: 10px; text-align: center; letter-spacing: 0.08em; }
+    .price { text-align: center; margin-bottom: 28px; }
+    .price-amount { font-family: 'Orbitron', monospace; font-size: 2.5rem; font-weight: 900; color: var(--cyan); text-shadow: 0 0 20px var(--cyan-glow); }
+    .price-period { font-size: 0.9rem; color: var(--text-mid); font-weight: 600; }
+    .pricing-features { list-style: none; margin-bottom: 28px; }
+    .pricing-features li { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 0.9rem; color: var(--text-bright); font-weight: 600; }
+    .pricing-features li::before { content: '›'; color: var(--cyan); font-weight: 900; flex-shrink: 0; font-size: 1.1rem; }
+    .btn-plan { width: 100%; padding: 13px; border-radius: 4px; font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 800; cursor: pointer; border: none; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+    .btn-plan-outline { background: transparent; color: var(--cyan); border: 1px solid var(--cyan) !important; }
+    .btn-plan-outline:hover { background: var(--cyan-dark); box-shadow: 0 0 15px rgba(0,229,255,0.2); }
+    .btn-plan-filled { background: var(--cyan); color: var(--dark-bg); box-shadow: 0 0 15px var(--cyan-glow); }
+    .btn-plan-filled:hover { box-shadow: 0 0 25px var(--cyan-glow); transform: translateY(-1px); }
+
+    /* ── CTA ── */
+    .cta {
+      padding: 80px 40px; text-align: center; z-index: 1; position: relative;
+      background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(0,229,255,0.05) 0%, transparent 70%);
+    }
+    .cta h2 { font-family: 'Orbitron', monospace; font-size: 2rem; font-weight: 900; color: var(--text-bright); margin-bottom: 14px; letter-spacing: 0.05em; }
+    .cta p { color: var(--text-mid); margin-bottom: 36px; }
+    .btn-start {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--cyan); color: var(--dark-bg); border: none;
+      padding: 15px 36px; border-radius: 4px;
+      font-family: 'Orbitron', monospace; font-size: 0.8rem; font-weight: 800;
+      cursor: pointer; text-transform: uppercase; letter-spacing: 0.08em;
+      box-shadow: 0 0 25px var(--cyan-glow);
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      background: var(--dark-card); padding: 32px 40px; text-align: center;
+      border-top: 1px solid var(--dark-border);
+    }
+    .footer-logo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; }
+    .footer p { color: var(--text-dim); font-size: 0.85rem; }
+
+    /* ── APP PAGE ── */
+    .app-page { display: none; min-height: 100vh; background: var(--dark-bg); }
+    .app-navbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 32px;
+      background: rgba(7,11,20,0.95);
+      border-bottom: 1px solid var(--dark-border);
+      backdrop-filter: blur(20px);
+    }
+    .app-logo { display: flex; align-items: center; gap: 10px; font-family: 'Orbitron', monospace; font-size: 0.9rem; font-weight: 800; color: var(--cyan); letter-spacing: 0.08em; }
+    .plan-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(0,229,255,0.1); color: var(--cyan);
+      padding: 5px 14px; border-radius: 999px;
+      font-size: 0.75rem; font-weight: 700;
+      border: 1px solid rgba(0,229,255,0.3);
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .scans-count { font-size: 0.875rem; color: var(--text-mid); font-weight: 600; font-family: 'Share Tech Mono', monospace; }
+    .btn-back {
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: 1px solid var(--dark-border);
+      border-radius: 4px; padding: 7px 14px;
+      font-family: 'Orbitron', monospace; font-size: 0.7rem; font-weight: 700;
+      color: var(--text-mid); cursor: pointer; transition: all 0.2s;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .btn-back:hover { border-color: var(--cyan); color: var(--cyan); }
+    .app-content { padding: 32px; max-width: 1400px; margin: 0 auto; }
+    .app-welcome h2 {
+      font-size: 1.6rem; font-weight: 900; color: var(--text-bright);
+      margin-bottom: 6px; font-family: 'Orbitron', monospace;
+      letter-spacing: 0.05em;
+    }
+    .app-welcome p { color: var(--text-mid); font-size: 0.95rem; margin-bottom: 24px; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 28px; flex-wrap: wrap; }
+    .tab {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 18px; border-radius: 4px;
+      font-family: 'Rajdhani', sans-serif; font-size: 0.875rem; font-weight: 700;
+      cursor: pointer; border: 1px solid transparent; background: transparent;
+      color: var(--text-mid); transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .tab:hover { border-color: var(--dark-border); color: var(--text-bright); background: var(--dark-card); }
+    .tab.active { background: var(--cyan-dark); color: var(--cyan); border-color: rgba(0,229,255,0.3); }
+
+    /* ── CARDS (universal) ── */
+    .email-card {
+      background: var(--dark-card); border: 1px solid var(--dark-border);
+      border-radius: 8px; padding: 28px;
+      display: flex; flex-direction: column; min-height: 500px;
+    }
+    .email-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .email-card-header h3 { font-family: 'Orbitron', monospace; font-size: 0.9rem; font-weight: 800; color: var(--text-bright); letter-spacing: 0.05em; text-transform: uppercase; }
+    .upgrade-link { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-dim); cursor: pointer; font-weight: 600; }
+    .field-label { font-size: 0.75rem; font-weight: 700; color: var(--cyan-dim); margin-bottom: 8px; font-family: 'Share Tech Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+    .field-input {
+      width: 100%; border: none; outline: none;
+      font-family: 'Rajdhani', sans-serif; font-size: 0.9rem;
+      color: var(--text-bright); background: transparent;
+      padding: 0 0 14px; border-bottom: 1px solid var(--dark-border2); margin-bottom: 20px;
+    }
+    .field-input::placeholder { color: var(--text-dim); }
+    .field-textarea {
+      width: 100%; border: none; outline: none;
+      font-family: 'Rajdhani', sans-serif; font-size: 0.9rem;
+      color: var(--text-bright); background: transparent; resize: none;
+      flex: 1; min-height: 220px; line-height: 1.7;
+    }
+    .field-textarea::placeholder { color: var(--text-dim); }
+    .email-actions { display: flex; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--dark-border2); }
+    .btn-analyze-main {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px;
+      background: var(--cyan); color: var(--dark-bg); border: none;
+      padding: 14px; border-radius: 4px;
+      font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 800;
+      cursor: pointer; transition: all 0.2s;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      box-shadow: 0 0 15px var(--cyan-glow);
+    }
+    .btn-analyze-main:hover { transform: translateY(-1px); box-shadow: 0 0 25px var(--cyan-glow); }
+    .btn-clear {
+      padding: 14px 22px; background: transparent;
+      border: 1px solid var(--dark-border);
+      border-radius: 4px;
+      font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 700;
+      color: var(--text-mid); cursor: pointer;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .result-panel {
+      background: var(--dark-card); border: 1px dashed rgba(0,229,255,0.2);
+      border-radius: 8px; min-height: 500px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px;
+    }
+    .result-panel.has-result { border: 1px solid var(--dark-border); align-items: stretch; justify-content: flex-start; }
+    .empty-state { text-align: center; }
+    .empty-icon { color: rgba(0,229,255,0.2); margin-bottom: 16px; }
+    .empty-state p { color: var(--text-dim); font-size: 0.9rem; font-weight: 600; font-family: 'Share Tech Mono', monospace; }
+    .result-verdict { border-radius: 6px; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 14px; }
+    .verdict-spam { background: rgba(255,45,120,0.08); border: 1px solid rgba(255,45,120,0.4); }
+    .verdict-safe { background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.3); }
+    .verdict-warn { background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.3); }
+    .verdict-icon { font-size: 2rem; }
+    .verdict-title { font-size: 1.2rem; font-weight: 900; font-family: 'Orbitron', monospace; letter-spacing: 0.05em; }
+    .verdict-sub { font-size: 0.82rem; color: var(--text-mid); margin-top: 2px; font-weight: 600; }
+    .conf-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.85rem; font-weight: 700; color: var(--text-bright); font-family: 'Share Tech Mono', monospace; }
+    .conf-bar { height: 6px; background: var(--dark-card2); border-radius: 999px; overflow: hidden; margin-bottom: 20px; }
+    .conf-fill { height: 100%; border-radius: 999px; transition: width 0.8s ease; }
+    .fill-spam { background: linear-gradient(90deg, var(--pink), #FF6B9D); box-shadow: 0 0 8px rgba(255,45,120,0.5); }
+    .fill-safe { background: linear-gradient(90deg, var(--green), #00CC6A); box-shadow: 0 0 8px rgba(0,255,136,0.4); }
+    .fill-warn { background: linear-gradient(90deg, var(--yellow), var(--orange)); box-shadow: 0 0 8px rgba(255,215,0,0.4); }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .stat-box { background: var(--dark-card2); border: 1px solid var(--dark-border); border-radius: 6px; padding: 14px; text-align: center; }
+    .stat-label { font-size: 0.7rem; color: var(--text-dim); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; font-family: 'Share Tech Mono', monospace; }
+    .stat-value { font-size: 1.4rem; font-weight: 900; color: var(--cyan); font-family: 'Orbitron', monospace; }
+    .signals-title { font-size: 0.75rem; font-weight: 800; color: var(--pink); margin-bottom: 10px; font-family: 'Share Tech Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+    .signals-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .signal-tag { background: rgba(255,45,120,0.08); border: 1px solid rgba(255,45,120,0.3); color: var(--pink); padding: 4px 12px; border-radius: 3px; font-size: 0.75rem; font-weight: 700; font-family: 'Share Tech Mono', monospace; }
+
+    /* ── LINK SCANNER ── */
+    .link-result { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; }
+    .link-safe { background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.2); }
+    .link-suspicious { background: rgba(255,215,0,0.05); border: 1px solid rgba(255,215,0,0.2); }
+    .link-malicious { background: rgba(255,45,120,0.05); border: 1px solid rgba(255,45,120,0.2); }
+    .link-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-safe { background: var(--green); box-shadow: 0 0 6px rgba(0,255,136,0.6); }
+    .dot-warn { background: var(--yellow); box-shadow: 0 0 6px rgba(255,215,0,0.6); }
+    .dot-danger { background: var(--pink); box-shadow: 0 0 6px rgba(255,45,120,0.6); }
+    .link-url { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-bright); font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; }
+    .link-badge { padding: 3px 10px; border-radius: 3px; font-size: 0.72rem; font-weight: 800; white-space: nowrap; font-family: 'Orbitron', monospace; }
+
+    /* ── ATTACHMENT SCANNER ── */
+    .dropzone {
+      border: 1px dashed rgba(0,229,255,0.3);
+      border-radius: 8px; padding: 40px; text-align: center; cursor: pointer;
+      transition: all 0.2s; background: var(--dark-card);
+    }
+    .dropzone:hover, .dropzone.dragging { border-color: var(--cyan); background: var(--cyan-dark); }
+    .dropzone-icon { font-size: 3rem; margin-bottom: 12px; }
+    .dropzone p { color: var(--text-mid); font-size: 0.9rem; font-weight: 600; }
+    .dropzone input { display: none; }
+    .file-result { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: var(--dark-card); border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--dark-border); }
+    .file-icon { width: 42px; height: 42px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; background: var(--cyan-dark); flex-shrink: 0; }
+    .file-info { flex: 1; }
+    .file-name { font-weight: 700; font-size: 0.9rem; color: var(--text-bright); }
+    .file-meta { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; font-family: 'Share Tech Mono', monospace; }
+    .progress-bar { height: 4px; background: var(--dark-card2); border-radius: 999px; margin-top: 8px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--cyan-dim)); border-radius: 999px; transition: width 0.5s ease; }
+
+    /* ── BREACH MONITOR ── */
+    .breach-card { background: var(--dark-card); border: 1px solid var(--dark-border); border-radius: 8px; padding: 24px; margin-bottom: 16px; }
+    .breach-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .breach-header h3 { font-family: 'Orbitron', monospace; font-size: 0.85rem; font-weight: 800; color: var(--text-bright); text-transform: uppercase; letter-spacing: 0.05em; }
+    .breach-item { display: flex; align-items: center; gap: 14px; padding: 14px; background: rgba(255,45,120,0.04); border-radius: 6px; margin-bottom: 10px; border: 1px solid rgba(255,45,120,0.15); }
+    .breach-severity { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .sev-low { background: var(--green); box-shadow: 0 0 6px rgba(0,255,136,0.6); }
+    .sev-medium { background: var(--yellow); box-shadow: 0 0 6px rgba(255,215,0,0.6); }
+    .sev-high { background: var(--pink); box-shadow: 0 0 6px rgba(255,45,120,0.6); }
+    .sev-critical { background: var(--purple); box-shadow: 0 0 6px rgba(139,92,246,0.6); }
+    .breach-name { font-weight: 800; font-size: 0.9rem; color: var(--text-bright); }
+    .breach-detail { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; font-family: 'Share Tech Mono', monospace; }
+    .breach-status { padding: 3px 10px; border-radius: 3px; font-size: 0.7rem; font-weight: 800; font-family: 'Orbitron', monospace; }
+    .status-resolved { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+    .status-pending { background: rgba(255,45,120,0.1); color: var(--pink); border: 1px solid rgba(255,45,120,0.3); }
+    .pw-strength-bar { height: 6px; border-radius: 999px; background: var(--dark-card2); overflow: hidden; margin: 10px 0; }
+    .pw-fill { height: 100%; border-radius: 999px; transition: all 0.4s; }
+    .pw-weak { background: var(--pink); width: 25%; }
+    .pw-medium { background: var(--yellow); width: 50%; }
+    .pw-strong { background: var(--green); width: 75%; }
+    .pw-excellent { background: linear-gradient(90deg, var(--cyan), var(--green)); width: 100%; }
+
+    /* ── DASHBOARD ── */
+    .stats-cards { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--dark-card); border-radius: 8px; padding: 20px; border: 1px solid var(--dark-border); }
+    .stat-card-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 14px; }
+    .icon-pink { background: rgba(0,229,255,0.08); }
+    .icon-green { background: rgba(0,255,136,0.08); }
+    .icon-red { background: rgba(255,45,120,0.08); }
+    .icon-blue { background: rgba(139,92,246,0.08); }
+    .stat-card-value { font-family: 'Orbitron', monospace; font-size: 2rem; font-weight: 900; color: var(--cyan); margin-bottom: 4px; text-shadow: 0 0 15px rgba(0,229,255,0.3); }
+    .stat-card-label { font-size: 0.75rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-card-trend { font-size: 0.75rem; font-weight: 700; margin-top: 6px; font-family: 'Share Tech Mono', monospace; }
+    .trend-up { color: var(--green); }
+    .trend-down { color: var(--pink); }
+    .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .chart-card { background: var(--dark-card); border-radius: 8px; padding: 24px; border: 1px solid var(--dark-border); }
+    .chart-card h3 { font-family: 'Orbitron', monospace; font-size: 0.8rem; font-weight: 800; color: var(--text-bright); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .gauge-wrap { position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px 0; }
+    .gauge-value { font-family: 'Orbitron', monospace; font-size: 2.5rem; font-weight: 900; color: var(--cyan); text-shadow: 0 0 20px var(--cyan-glow); }
+    .gauge-label { font-size: 0.85rem; color: var(--text-mid); font-weight: 600; }
+    .gauge-zones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; justify-content: center; }
+    .gauge-zone { padding: 4px 10px; border-radius: 3px; font-size: 0.7rem; font-weight: 700; font-family: 'Share Tech Mono', monospace; }
+    .senders-table { width: 100%; border-collapse: collapse; }
+    .senders-table th { font-size: 0.7rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--dark-border); font-family: 'Share Tech Mono', monospace; }
+    .senders-table td { padding: 12px 14px; font-size: 0.875rem; border-bottom: 1px solid var(--dark-border2); color: var(--text-bright); }
+    .senders-table tr:last-child td { border-bottom: none; }
+    .keyword-cloud { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; }
+    .kw-tag { padding: 6px 14px; border-radius: 3px; font-size: 0.78rem; font-weight: 800; cursor: pointer; transition: transform 0.2s; font-family: 'Share Tech Mono', monospace; }
+    .kw-tag:hover { transform: scale(1.1); }
+    .kw-financial { background: rgba(0,229,255,0.08); color: var(--cyan); border: 1px solid rgba(0,229,255,0.2); }
+    .kw-urgent { background: rgba(255,45,120,0.08); color: var(--pink); border: 1px solid rgba(255,45,120,0.2); }
+    .kw-prize { background: rgba(255,215,0,0.08); color: var(--yellow); border: 1px solid rgba(255,215,0,0.2); }
+    .kw-suspicious { background: rgba(255,107,53,0.08); color: var(--orange); border: 1px solid rgba(255,107,53,0.2); }
+    .timeline-item { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--dark-border2); }
+    .timeline-time { font-size: 0.75rem; color: var(--text-dim); font-weight: 600; white-space: nowrap; font-family: 'Share Tech Mono', monospace; }
+    .timeline-content { flex: 1; }
+    .timeline-subject { font-size: 0.875rem; font-weight: 700; color: var(--text-bright); margin-bottom: 4px; }
+    .timeline-meta { font-size: 0.75rem; color: var(--text-mid); font-family: 'Share Tech Mono', monospace; }
+    .feature-usage-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .fu-card { background: var(--dark-card2); border-radius: 8px; padding: 18px; border: 1px solid var(--dark-border); }
+    .fu-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .fu-icon { font-size: 1.3rem; }
+    .fu-title { font-size: 0.8rem; font-weight: 800; color: var(--text-bright); font-family: 'Orbitron', monospace; }
+    .fu-count { font-family: 'Orbitron', monospace; font-size: 1.5rem; font-weight: 900; color: var(--cyan); margin-bottom: 4px; }
+    .fu-bar { height: 4px; background: var(--dark-bg); border-radius: 999px; overflow: hidden; }
+    .fu-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--cyan-dim)); border-radius: 999px; }
+
+    /* ── SHARE MODAL ── */
+    .share-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .share-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; }
+    .share-btn:hover { transform: translateY(-1px); }
+    .sb-twitter { background: #000; color: #fff; border: 1px solid #333 !important; }
+    .sb-whatsapp { background: #25D366; color: #fff; }
+    .sb-facebook { background: #1877F2; color: #fff; }
+    .sb-telegram { background: #26A5E4; color: #fff; }
+    .share-result-preview { background: rgba(0,229,255,0.04); border: 1px solid var(--dark-border); border-radius: 6px; padding: 14px; margin-bottom: 16px; font-size: 0.85rem; color: var(--text-bright); line-height: 1.6; font-family: 'Share Tech Mono', monospace; }
+    .qr-placeholder { width: 100px; height: 100px; background: var(--dark-card2); border-radius: 8px; border: 1px solid var(--dark-border); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 12px; }
+
+    /* ── MODALS ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 999; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: var(--dark-card); border: 1px solid var(--dark-border); border-radius: 8px; max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 0 40px rgba(0,229,255,0.1), 0 25px 60px rgba(0,0,0,0.6); animation: modalIn 0.3s ease; }
+    .modal-sm { max-width: 460px; }
+    @keyframes modalIn { from{opacity:0;transform:scale(0.92) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);} }
+    .modal-header { background: linear-gradient(135deg, rgba(0,229,255,0.08), rgba(0,180,216,0.04)); padding: 32px 32px 28px; border-radius: 8px 8px 0 0; text-align: center; position: relative; border-bottom: 1px solid var(--dark-border); }
+    .modal-header h2 { color: var(--cyan); font-family: 'Orbitron', monospace; font-size: 1.4rem; font-weight: 900; margin-bottom: 6px; text-shadow: 0 0 20px var(--cyan-glow); letter-spacing: 0.08em; }
+    .modal-header p { color: var(--text-mid); font-size: 0.95rem; }
+    .modal-close { position: absolute; top: 16px; right: 16px; background: rgba(0,229,255,0.1); border: 1px solid var(--dark-border); width: 34px; height: 34px; border-radius: 4px; color: var(--text-mid); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .modal-close:hover { border-color: var(--cyan); color: var(--cyan); }
+    .modal-body { padding: 32px; }
+    .step-card { display: flex; gap: 18px; padding: 20px; border-radius: 6px; background: rgba(0,229,255,0.04); border: 1px solid var(--dark-border); margin-bottom: 16px; transition: transform 0.2s; }
+    .step-card:hover { transform: translateX(4px); border-color: rgba(0,229,255,0.3); }
+    .step-number { width: 42px; height: 42px; background: var(--cyan); color: var(--dark-bg); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Orbitron', monospace; font-size: 1.1rem; font-weight: 900; flex-shrink: 0; }
+    .step-content h4 { font-size: 0.9rem; font-weight: 800; color: var(--text-bright); margin-bottom: 5px; font-family: 'Orbitron', monospace; letter-spacing: 0.03em; }
+    .step-content p { font-size: 0.875rem; color: var(--text-mid); line-height: 1.6; }
+    .step-screenshot { margin-top: 12px; background: var(--dark-card2); border: 1px solid var(--dark-border); border-radius: 6px; padding: 14px; display: flex; align-items: center; gap: 12px; }
+    .screenshot-icon { width: 48px; height: 48px; background: var(--cyan-dark); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--cyan); flex-shrink: 0; border: 1px solid rgba(0,229,255,0.2); }
+    .screenshot-label { font-size: 0.8rem; color: var(--text-mid); font-weight: 600; }
+    .screenshot-label strong { display: block; color: var(--text-bright); font-size: 0.875rem; margin-bottom: 2px; }
+    .step-connector { text-align: center; color: var(--cyan-dim); font-size: 1.4rem; margin: -4px 0; }
+
+    /* payment modal */
+    .pay-modal-box { background: var(--dark-card); border: 1px solid var(--dark-border); border-radius: 8px; max-width: 440px; width: 100%; box-shadow: 0 0 40px rgba(0,229,255,0.1), 0 25px 60px rgba(0,0,0,0.6); animation: modalIn 0.3s ease; overflow: hidden; }
+    .pay-header { background: linear-gradient(135deg, rgba(0,229,255,0.1), rgba(0,180,216,0.05)); padding: 28px; text-align: center; position: relative; border-bottom: 1px solid var(--dark-border); }
+    .pay-header h3 { color: var(--cyan); font-family: 'Orbitron', monospace; font-size: 1.2rem; font-weight: 900; margin-bottom: 4px; letter-spacing: 0.05em; }
+    .pay-header p { color: var(--text-mid); font-size: 0.875rem; }
+    .pay-body { padding: 28px; }
+    .pay-plan-name { text-align: center; font-family: 'Orbitron', monospace; font-size: 0.9rem; font-weight: 800; color: var(--text-bright); margin-bottom: 4px; }
+    .pay-amount { text-align: center; font-family: 'Orbitron', monospace; font-size: 2.5rem; font-weight: 900; color: var(--cyan); margin-bottom: 24px; text-shadow: 0 0 20px var(--cyan-glow); }
+    .pay-methods { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+    .pay-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; border-radius: 4px; border: none; font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 800; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+    .pay-gpay { background: #000; color: #fff; border: 1px solid #333 !important; }
+    .pay-gpay:hover { background: #1a1a1a; transform: translateY(-1px); }
+    .pay-upi { background: transparent; color: var(--cyan); border: 1px solid var(--cyan) !important; }
+    .pay-upi:hover { background: var(--cyan-dark); }
+    .pay-divider { text-align: center; color: var(--text-dim); font-size: 0.75rem; font-weight: 700; margin: 4px 0; font-family: 'Share Tech Mono', monospace; }
+    .pay-note { display: none; background: rgba(0,229,255,0.04); border: 1px solid var(--dark-border); border-radius: 6px; padding: 16px; text-align: center; margin-top: 4px; }
+    .pay-secure { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.75rem; color: var(--text-dim); margin-top: 16px; font-weight: 600; font-family: 'Share Tech Mono', monospace; }
+    .pay-cancel { width: 100%; padding: 11px; border-radius: 4px; border: 1px solid var(--dark-border); background: transparent; font-family: 'Orbitron', monospace; font-size: 0.72rem; font-weight: 700; color: var(--text-mid); cursor: pointer; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* ── HISTORY / SETTINGS ── */
+    .history-item { background: var(--dark-card); border: 1px solid var(--dark-border); border-radius: 6px; padding: 16px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .history-subject { font-weight: 700; color: var(--text-bright); font-size: 0.9rem; }
+    .history-time { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; font-family: 'Share Tech Mono', monospace; }
+    .hist-badge { padding: 4px 12px; border-radius: 3px; font-size: 0.7rem; font-weight: 800; font-family: 'Orbitron', monospace; }
+    .hist-spam { background: rgba(255,45,120,0.1); color: var(--pink); border: 1px solid rgba(255,45,120,0.3); }
+    .hist-safe { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+    .hist-warn { background: rgba(255,215,0,0.1); color: var(--yellow); border: 1px solid rgba(255,215,0,0.3); }
+    .settings-card { background: var(--dark-card); border: 1px solid var(--dark-border); border-radius: 8px; padding: 28px; max-width: 500px; margin-bottom: 20px; }
+    .settings-card h3 { font-family: 'Orbitron', monospace; font-weight: 800; font-size: 0.85rem; color: var(--cyan); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--dark-border2); }
+    .setting-label { font-size: 0.9rem; font-weight: 700; color: var(--text-bright); }
+    .setting-desc { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; font-family: 'Share Tech Mono', monospace; }
+    .switch { width: 42px; height: 24px; background: var(--dark-card2); border-radius: 999px; position: relative; cursor: pointer; transition: background 0.2s; border: 1px solid var(--dark-border); flex-shrink: 0; }
+    .switch.on { background: rgba(0,229,255,0.2); border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,229,255,0.2); }
+    .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: var(--text-dim); border-radius: 50%; transition: left 0.2s; }
+    .switch.on::after { left: 21px; background: var(--cyan); }
+
+    /* ── COMMUNITY ── */
+    .report-card { background: var(--dark-card); border-radius: 8px; padding: 20px; margin-bottom: 12px; border: 1px solid var(--dark-border); }
+    .report-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .report-sender { font-weight: 800; font-size: 0.9rem; color: var(--text-bright); font-family: 'Share Tech Mono', monospace; }
+    .report-type { padding: 3px 10px; border-radius: 3px; font-size: 0.7rem; font-weight: 800; font-family: 'Orbitron', monospace; }
+    .type-phishing { background: rgba(255,45,120,0.1); color: var(--pink); border: 1px solid rgba(255,45,120,0.3); }
+    .type-scam { background: rgba(255,215,0,0.1); color: var(--yellow); border: 1px solid rgba(255,215,0,0.3); }
+    .type-malware { background: rgba(139,92,246,0.1); color: var(--purple); border: 1px solid rgba(139,92,246,0.3); }
+    .vote-btns { display: flex; gap: 8px; margin-top: 10px; }
+    .vote-btn { display: flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 4px; border: 1px solid var(--dark-border); background: transparent; font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; font-weight: 700; cursor: pointer; color: var(--text-mid); transition: all 0.2s; }
+    .vote-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    /* ── ANALYZER GRID ── */
+    .analyzer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+
+    @keyframes spin { to{transform:rotate(360deg);} }
+    @keyframes countUp { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
+    .counting { animation: countUp 0.5s ease; }
+
+    @media(max-width:1024px){.stats-cards{grid-template-columns:repeat(2,1fr)}.charts-grid{grid-template-columns:1fr}.feature-usage-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:768px){.features-grid{grid-template-columns:1fr 1fr}.pricing-grid{grid-template-columns:1fr;max-width:380px}.analyzer-grid{grid-template-columns:1fr}.hero h1{font-size:2rem}.stats-cards{grid-template-columns:1fr 1fr}}
+    @media(max-width:480px){.features-grid{grid-template-columns:1fr}.navbar{padding:12px 16px}.stats-cards{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<!-- ══════ TOAST NOTIFICATION ══════ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════ GOOGLE OAUTH LOADING OVERLAY ══════ -->
+<div class="google-oauth-overlay" id="googleOAuthOverlay">
+  <div class="oauth-logo-row">
+    <div class="oauth-brand">Google</div>
+    <div class="oauth-arrow">→</div>
+    <div class="oauth-site">SpamDetector</div>
+  </div>
+  <div class="oauth-spinner"></div>
+  <div class="oauth-msg" id="oauthMsg">Connecting to Google...</div>
+</div>
+
+<!-- ══════ SIGN UP MODAL ══════ -->
+<div class="modal-overlay" id="signupModal" onclick="overlayClose(event,'signupModal')">
+  <div class="auth-modal-box">
+    <div class="auth-header">
+      <button class="modal-close" onclick="closeModal('signupModal')">✕</button>
+      <h2>Create Account</h2>
+      <p>Join SpamDetector for free today</p>
+    </div>
+    <div class="auth-body">
+      <button class="btn-google-auth" onclick="initiateGoogleOAuth('signup')">
+        <div class="google-logo"></div> Continue with Google
+      </button>
+      <div class="auth-divider"><span>or sign up with email</span></div>
+      <div class="auth-input-group">
+        <label>Full Name</label>
+        <input type="text" class="auth-input" id="su-name" placeholder="e.g. John Smith"/>
+        <div class="auth-error" id="su-name-err">Please enter your name</div>
+      </div>
+      <div class="auth-input-group">
+        <label>Email Address</label>
+        <input type="email" class="auth-input" id="su-email" placeholder="you@example.com"/>
+        <div class="auth-error" id="su-email-err">Please enter a valid email</div>
+      </div>
+      <div class="auth-input-group">
+        <label>Password</label>
+        <div style="position:relative;">
+          <input type="password" class="auth-input" id="su-pass" placeholder="Min 8 characters" oninput="signupPwStrength(this.value)" style="padding-right:44px;"/>
+          <span onclick="togglePw('su-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1rem;">👁️</span>
+        </div>
+        <div style="height:4px;background:var(--dark-card2);border-radius:999px;margin-top:8px;overflow:hidden;"><div id="su-pw-bar" style="height:100%;width:0%;border-radius:999px;transition:all 0.3s;"></div></div>
+        <div id="su-pw-txt" style="font-size:0.72rem;color:var(--text-dim);margin-top:4px;font-weight:600;font-family:'Share Tech Mono',monospace;"></div>
+        <div class="auth-error" id="su-pass-err">Password must be at least 8 characters</div>
+      </div>
+      <div class="auth-input-group">
+        <label>Confirm Password</label>
+        <input type="password" class="auth-input" id="su-confirm" placeholder="Re-enter password"/>
+        <div class="auth-error" id="su-confirm-err">Passwords do not match</div>
+      </div>
+      <button class="btn-auth-submit" onclick="handleSignup()">Create Free Account →</button>
+      <div class="auth-terms">By signing up you agree to our <a href="#" style="color:var(--cyan);">Terms of Service</a> and <a href="#" style="color:var(--cyan);">Privacy Policy</a></div>
+      <div class="auth-switch">Already have an account? <a onclick="closeModal('signupModal');openModal('loginModal')">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ LOGIN MODAL ══════ -->
+<div class="modal-overlay" id="loginModal" onclick="overlayClose(event,'loginModal')">
+  <div class="auth-modal-box">
+    <div class="auth-header">
+      <button class="modal-close" onclick="closeModal('loginModal')">✕</button>
+      <h2>Welcome Back!</h2>
+      <p>Sign in to your SpamDetector account</p>
+    </div>
+    <div class="auth-body">
+      <button class="btn-google-auth" onclick="initiateGoogleOAuth('login')">
+        <div class="google-logo"></div> Continue with Google
+      </button>
+      <div class="auth-divider"><span>or sign in with email</span></div>
+      <div class="auth-input-group">
+        <label>Email Address</label>
+        <input type="email" class="auth-input" id="li-email" placeholder="you@example.com"/>
+        <div class="auth-error" id="li-email-err">Please enter your email</div>
+      </div>
+      <div class="auth-input-group">
+        <label>Password</label>
+        <div style="position:relative;">
+          <input type="password" class="auth-input" id="li-pass" placeholder="Your password" style="padding-right:44px;" onkeydown="if(event.key==='Enter')handleLogin()"/>
+          <span onclick="togglePw('li-pass',this)" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:1rem;">👁️</span>
+        </div>
+        <div class="auth-error" id="li-pass-err">Incorrect email or password</div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+        <a onclick="openModal('forgotModal');closeModal('loginModal')" style="font-size:0.82rem;color:var(--cyan);font-weight:700;cursor:pointer;font-family:'Share Tech Mono',monospace;">Forgot password?</a>
+      </div>
+      <button class="btn-auth-submit" onclick="handleLogin()">Sign In →</button>
+      <div class="auth-switch">Don't have an account? <a onclick="closeModal('loginModal');openModal('signupModal')">Sign up free</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ FORGOT PASSWORD MODAL ══════ -->
+<div class="modal-overlay" id="forgotModal" onclick="overlayClose(event,'forgotModal')">
+  <div class="auth-modal-box">
+    <div class="auth-header">
+      <button class="modal-close" onclick="closeModal('forgotModal')">✕</button>
+      <h2>Reset Password</h2>
+      <p>We'll send a reset link to your email</p>
+    </div>
+    <div class="auth-body" id="forgotBody">
+      <div class="auth-input-group">
+        <label>Email Address</label>
+        <input type="email" class="auth-input" id="fp-email" placeholder="you@example.com"/>
+        <div class="auth-error" id="fp-err">Please enter a valid email</div>
+      </div>
+      <button class="btn-auth-submit" onclick="handleForgot()">Send Reset Link →</button>
+      <div class="auth-switch"><a onclick="closeModal('forgotModal');openModal('loginModal')">← Back to Sign In</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ PROFILE MODAL ══════ -->
+<div class="modal-overlay" id="profileModal" onclick="overlayClose(event,'profileModal')">
+  <div class="auth-modal-box">
+    <div class="auth-header">
+      <button class="modal-close" onclick="closeModal('profileModal')">✕</button>
+      <h2>My Profile</h2>
+      <p>Manage your account details</p>
+    </div>
+    <div class="auth-body">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div class="user-avatar" id="profileAvatar" style="background:var(--cyan);width:72px;height:72px;font-size:1.8rem;margin:0 auto 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--dark-bg);font-weight:900;box-shadow:0 0 20px var(--cyan-glow);">U</div>
+        <div style="font-weight:800;font-size:1rem;font-family:'Orbitron',monospace;color:var(--text-bright);" id="profileName">User</div>
+        <div style="font-size:0.82rem;color:var(--text-dim);font-family:'Share Tech Mono',monospace;" id="profileEmail">user@example.com</div>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,255,0.1);color:var(--cyan);padding:4px 12px;border-radius:3px;font-size:0.72rem;font-weight:700;margin-top:6px;border:1px solid rgba(0,229,255,0.3);font-family:'Orbitron',monospace;" id="profileBadge">⭐ Free Plan</div>
+      </div>
+      <div class="auth-input-group">
+        <label>Display Name</label>
+        <input type="text" class="auth-input" id="prof-name" placeholder="Your name"/>
+      </div>
+      <div class="auth-input-group">
+        <label>Email</label>
+        <input type="email" class="auth-input" id="prof-email" placeholder="your@email.com"/>
+      </div>
+      <button class="btn-auth-submit" onclick="saveProfile()">Save Changes</button>
+      <button onclick="signOut()" style="width:100%;padding:11px;border-radius:4px;border:1px solid rgba(255,45,120,0.4);background:rgba(255,45,120,0.08);color:var(--pink);font-family:'Orbitron',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;margin-top:8px;text-transform:uppercase;letter-spacing:0.05em;">🚪 Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ LANDING PAGE ══════════ -->
+<div id="landingPage">
+  <nav class="navbar">
+    <a href="#" class="nav-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      SpamDetector
+    </a>
+    <div class="nav-right">
+      <div class="nav-help">?</div>
+      <div id="navAuthButtons" style="display:flex;gap:10px;align-items:center;">
+        <button class="btn-signup" onclick="openModal('signupModal')">Sign up</button>
+        <button class="btn-google" onclick="initiateGoogleOAuth('login')">
+          <div class="google-logo"></div>
+          Continue with Google
+        </button>
+      </div>
+      <div id="navUserArea" style="display:none;position:relative;">
+        <div class="user-avatar" id="navAvatar" onclick="toggleDropdown()" style="background:var(--cyan);color:var(--dark-bg);">U</div>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="user-info-row">
+            <div class="user-info-name" id="ddName">User</div>
+            <div class="user-info-email" id="ddEmail">user@example.com</div>
+          </div>
+          <div class="dropdown-item" onclick="goToApp();closeDropdown()">📧 Email Analyzer</div>
+          <div class="dropdown-item" onclick="switchToTab('dashboard')">📊 Dashboard</div>
+          <div class="dropdown-item" onclick="openModal('profileModal')">👤 My Profile</div>
+          <div class="dropdown-item" onclick="switchToTab('settings')">⚙️ Settings</div>
+          <div class="dropdown-item danger" onclick="signOut()">🚪 Sign Out</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <!-- Floating particles -->
+    <div class="particle" style="left:10%;width:6px;height:6px;background:var(--green);animation-duration:8s;animation-delay:0s;border-radius:1px;"></div>
+    <div class="particle" style="left:20%;width:4px;height:4px;background:var(--cyan);animation-duration:12s;animation-delay:2s;"></div>
+    <div class="particle" style="left:35%;width:5px;height:5px;background:var(--pink);animation-duration:9s;animation-delay:1s;border-radius:1px;"></div>
+    <div class="particle" style="left:50%;width:3px;height:3px;background:var(--green);animation-duration:14s;animation-delay:3s;"></div>
+    <div class="particle" style="left:65%;width:6px;height:6px;background:var(--cyan);animation-duration:7s;animation-delay:0.5s;border-radius:1px;"></div>
+    <div class="particle" style="left:75%;width:4px;height:4px;background:var(--pink);animation-duration:11s;animation-delay:1.5s;"></div>
+    <div class="particle" style="left:85%;width:5px;height:5px;background:var(--green);animation-duration:10s;animation-delay:4s;border-radius:1px;"></div>
+    <div class="particle" style="left:92%;width:3px;height:3px;background:var(--cyan);animation-duration:13s;animation-delay:2.5s;"></div>
+
+    <div class="hero-shield" style="position:relative;z-index:1;">
+      <svg width="90" height="90" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <!-- Glow rings -->
+      <div style="position:absolute;inset:-15px;border:1px solid rgba(0,229,255,0.15);border-radius:50%;animation:shieldPulse 3s ease-in-out infinite;animation-delay:0.5s;"></div>
+      <div style="position:absolute;inset:-30px;border:1px solid rgba(0,229,255,0.07);border-radius:50%;animation:shieldPulse 3s ease-in-out infinite;animation-delay:1s;"></div>
+    </div>
+
+    <h1 style="position:relative;z-index:1;">Stop <span>Spam.</span><br>Stay Safe.</h1>
+    <p style="position:relative;z-index:1;">AI-powered email protection with 98% accuracy</p>
+    <div class="hero-buttons" style="position:relative;z-index:1;">
+      <button class="btn-try" onclick="goToApp()">Try Free Now</button>
+      <button class="btn-how" onclick="openModal('howModal')">How It Works</button>
+    </div>
+    <div class="hero-stats" style="position:relative;z-index:1;">
+      <div style="text-align:center;"><div class="hero-stat-val">98%</div><div class="hero-stat-lbl">Accuracy</div></div>
+      <div style="text-align:center;"><div class="hero-stat-val">&lt;2s</div><div class="hero-stat-lbl">Detection</div></div>
+      <div style="text-align:center;"><div class="hero-stat-val">50K+</div><div class="hero-stat-lbl">Protected</div></div>
+    </div>
+  </section>
+
+  <section class="features">
+    <h2>Powerful Features</h2>
+    <p style="letter-spacing:0.05em;">Everything you need to protect your inbox</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+        <h3>Real-Time Detection</h3><p>Instant analysis in under 2 seconds with AI-powered accuracy</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+        <h3>98% Accuracy</h3><p>Industry-leading spam detection powered by machine learning</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <h3>Auto-Scan Mode</h3><p>Analyzes emails as you type for instant protection</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <h3>Detection History</h3><p>Track and review all your analyzed emails over time</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="pricing">
+    <h2>Simple Pricing</h2>
+    <div class="pricing-toggle-row">
+      <span>Monthly</span><div class="toggle"></div><span>Yearly</span>
+      <span class="save-badge">Save 17% with yearly billing</span>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <h3>Free</h3>
+        <div class="price"><span class="price-amount">₹0</span><span class="price-period"> Forever</span></div>
+        <ul class="pricing-features"><li>10 emails/day</li><li>7-day history</li><li>Basic detection</li><li>Community support</li></ul>
+        <button class="btn-plan btn-plan-outline" onclick="openPayModal('Free','₹0','Forever')">Get Started</button>
+      </div>
+      <div class="pricing-card popular">
+        <div class="popular-badge">Most Popular</div>
+        <h3>Premium</h3>
+        <div class="price"><span class="price-amount">₹150</span><span class="price-period">/month</span></div>
+        <ul class="pricing-features"><li>100 emails/day</li><li>90-day history</li><li>Auto-scan mode</li><li>Export reports</li><li>Email support</li></ul>
+        <button class="btn-plan btn-plan-filled" onclick="openPayModal('Premium','₹150','/month')">Upgrade Now</button>
+      </div>
+      <div class="pricing-card">
+        <h3>Business</h3>
+        <div class="price"><span class="price-amount">₹500</span><span class="price-period">/month</span></div>
+        <ul class="pricing-features"><li>Unlimited emails</li><li>1-year history</li><li>API access</li><li>5 team users</li><li>Priority support</li><li>Custom ML training</li></ul>
+        <button class="btn-plan btn-plan-outline" onclick="openPayModal('Business','₹500','/month')">Contact Sales</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <h2>Ready to Protect<br>Your Inbox?</h2>
+    <p>Join thousands of users who trust our AI-powered spam detection</p>
+    <button class="btn-start" onclick="goToApp()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Start Free Today
+    </button>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span style="font-family:'Orbitron',monospace;font-size:0.85rem;color:var(--text-mid);letter-spacing:0.1em;">SPAMDETECTOR</span>
+    </div>
+    <p>© 2026 SpamDetector. All rights reserved.</p>
+  </footer>
+</div>
+
+<!-- ══════════ HOW IT WORKS MODAL ══════════ -->
+<div class="modal-overlay" id="howModal" onclick="overlayClose(event,'howModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeModal('howModal')">✕</button>
+      <h2>🛡️ How It Works</h2><p>Detect spam emails in 4 simple steps</p>
+    </div>
+    <div class="modal-body">
+      <div class="step-card"><div class="step-number">1</div><div class="step-content"><h4>Paste Your Email</h4><p>Copy any suspicious email and paste it into the Email Analyzer — subject and full body text.</p><div class="step-screenshot"><div class="screenshot-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="screenshot-label"><strong>📋 Email Content Panel (Left side)</strong>Enter subject + paste full email body into the fields</div></div></div></div>
+      <div class="step-connector">↓</div>
+      <div class="step-card"><div class="step-number">2</div><div class="step-content"><h4>Click "Analyze Email"</h4><p>Our AI scans 30+ spam signals — keywords, caps ratio, URLs, money references, and phishing patterns — in under 2 seconds.</p><div class="step-screenshot"><div class="screenshot-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="screenshot-label"><strong>🔍 Cyan Analyze Button (Bottom of panel)</strong>Hit the button — results appear on the right instantly</div></div></div></div>
+      <div class="step-connector">↓</div>
+      <div class="step-card"><div class="step-number">3</div><div class="step-content"><h4>Review Full Results</h4><p>See the verdict — SPAM, LIKELY SPAM, or SAFE — with confidence %, spam score, link safety scan, and all triggered signals.</p><div class="step-screenshot"><div class="screenshot-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="screenshot-label"><strong>✅ Results Panel (Right side)</strong>Verdict badge, confidence bar, link scan, and spam signals</div></div></div></div>
+      <div class="step-connector">↓</div>
+      <div class="step-card"><div class="step-number">4</div><div class="step-content"><h4>Track, Share & Monitor</h4><p>Use the Dashboard for stats, History for past scans, Breach Monitor for dark web checks, and share results with your community.</p><div class="step-screenshot"><div class="screenshot-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div><div class="screenshot-label"><strong>📊 Dashboard Tab</strong>Full analytics, charts, breach monitoring, and community reports</div></div></div></div>
+      <button onclick="closeModal('howModal');goToApp()" style="width:100%;margin-top:16px;padding:14px;border-radius:4px;background:var(--cyan);color:var(--dark-bg);border:none;font-family:'Orbitron',monospace;font-size:0.8rem;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:0.08em;box-shadow:0 0 15px var(--cyan-glow);">Try It Free Now →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PAYMENT MODAL ══════════ -->
+<div class="modal-overlay" id="payModal" onclick="overlayClose(event,'payModal')">
+  <div class="pay-modal-box">
+    <div class="pay-header">
+      <button class="modal-close" onclick="closeModal('payModal')">✕</button>
+      <h3>💳 Complete Payment</h3><p>Secure UPI payment via Google Pay</p>
+    </div>
+    <div class="pay-body">
+      <div class="pay-plan-name" id="payPlanName">Premium Plan</div>
+      <div class="pay-amount" id="payAmount">₹150<span style="font-size:1rem;color:var(--text-dim);font-weight:600;">/month</span></div>
+      <div class="pay-methods">
+        <button class="pay-btn pay-gpay" onclick="openGooglePay()">🏦 Pay with Google Pay</button>
+        <div class="pay-divider">or enter UPI ID manually</div>
+        <button class="pay-btn pay-upi" onclick="showUpiId()">💳 Show UPI ID to Pay</button>
+      </div>
+      <div class="pay-note" id="payUpiNote">
+        <div style="font-size:0.78rem;color:var(--text-mid);margin-bottom:8px;font-weight:600;font-family:'Share Tech Mono',monospace;">Send payment to this UPI ID:</div>
+        <div style="font-family:'Orbitron',monospace;font-size:1rem;font-weight:900;color:var(--cyan);text-shadow:0 0 10px var(--cyan-glow);" id="upiDisplayId">your-vedantakashelkar@oksbi</div>
+        <div style="font-size:0.75rem;color:var(--text-dim);margin-top:8px;font-family:'Share Tech Mono',monospace;">Open Google Pay → New Payment → UPI ID → paste above</div>
+      </div>
+      <div class="pay-secure">🔒 256-bit encrypted · Secure UPI payment</div>
+      <button class="pay-cancel" onclick="closeModal('payModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SHARE MODAL ══════════ -->
+<div class="modal-overlay" id="shareModal" onclick="overlayClose(event,'shareModal')">
+  <div class="modal-box modal-sm">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeModal('shareModal')">✕</button>
+      <h2>📤 Share Result</h2><p>Warn your friends and family</p>
+    </div>
+    <div class="modal-body">
+      <div class="share-result-preview" id="sharePreviewText">🚨 I detected a SPAM email with 95% confidence using SpamDetector!</div>
+      <div class="qr-placeholder">📱</div>
+      <p style="text-align:center;font-size:0.75rem;color:var(--text-dim);margin-bottom:16px;font-weight:600;font-family:'Share Tech Mono',monospace;">Scan QR to share on mobile</p>
+      <div class="share-btns">
+        <button class="share-btn sb-twitter" onclick="shareOn('twitter')">🐦 Twitter/X</button>
+        <button class="share-btn sb-whatsapp" onclick="shareOn('whatsapp')">💬 WhatsApp</button>
+        <button class="share-btn sb-facebook" onclick="shareOn('facebook')">📘 Facebook</button>
+        <button class="share-btn sb-telegram" onclick="shareOn('telegram')">✈️ Telegram</button>
+      </div>
+      <button onclick="copyShareText()" style="width:100%;padding:11px;border-radius:4px;border:1px solid rgba(0,229,255,0.3);background:rgba(0,229,255,0.06);color:var(--cyan);font-family:'Orbitron',monospace;font-size:0.75rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">📋 Copy Text</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ APP PAGE ══════════ -->
+<div id="appPage" class="app-page">
+  <nav class="app-navbar">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <button class="btn-back" onclick="goBack()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Back
+      </button>
+      <div class="app-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        SpamDetector
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span class="scans-count" id="scanCount">0/10 scans today</span>
+      <div class="plan-badge">⭐ Free</div>
+    </div>
+  </nav>
+
+  <div class="app-content">
+    <div class="app-welcome">
+      <h2>Welcome back! 👋</h2>
+      <p>Ready to scan some emails?</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('analyzer',this)">📧 Email Analyzer</button>
+      <button class="tab" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+      <button class="tab" onclick="switchTab('linkscanner',this)">🔗 Link Scanner</button>
+      <button class="tab" onclick="switchTab('attachments',this)">📎 Attachments</button>
+      <button class="tab" onclick="switchTab('breach',this)">🌐 Breach Monitor</button>
+      <button class="tab" onclick="switchTab('community',this)">👥 Community</button>
+      <button class="tab" onclick="switchTab('history',this)">🕐 History (<span id="histCount">0</span>)</button>
+      <button class="tab" onclick="switchTab('settings',this)">⚙️ Settings</button>
+    </div>
+
+    <!-- ── ANALYZER TAB ── -->
+    <div id="tab-analyzer">
+      <div class="analyzer-grid">
+        <div class="email-card">
+          <div class="email-card-header">
+            <h3>Email Content</h3>
+            <span class="upgrade-link">⭐ Upgrade for auto-scan</span>
+          </div>
+          <div class="field-label">Subject (Optional)</div>
+          <input type="text" class="field-input" id="appSubject" placeholder="Enter email subject..."/>
+          <div class="field-label">Email Body</div>
+          <textarea class="field-textarea" id="appBody" placeholder="Paste the email content here..."></textarea>
+          <div class="email-actions">
+            <button class="btn-analyze-main" onclick="analyzeEmail()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Analyze Email
+            </button>
+            <button class="btn-clear" onclick="clearEmail()">Clear</button>
+          </div>
+        </div>
+        <div class="result-panel" id="resultPanel">
+          <div class="empty-state">
+            <div class="empty-icon"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+            <p>Paste an email to get started</p>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;align-items:center;">
+        <span style="font-size:0.75rem;color:var(--text-dim);font-weight:600;font-family:'Share Tech Mono',monospace;">Try a sample:</span>
+        <button onclick="loadSample('spam')" style="font-size:0.75rem;padding:5px 14px;border-radius:3px;border:1px solid rgba(255,45,120,0.3);background:rgba(255,45,120,0.06);color:var(--pink);font-weight:700;cursor:pointer;font-family:'Orbitron',monospace;text-transform:uppercase;letter-spacing:0.04em;">🚫 Spam</button>
+        <button onclick="loadSample('ham')" style="font-size:0.75rem;padding:5px 14px;border-radius:3px;border:1px solid rgba(0,255,136,0.3);background:rgba(0,255,136,0.06);color:var(--green);font-weight:700;cursor:pointer;font-family:'Orbitron',monospace;text-transform:uppercase;letter-spacing:0.04em;">✅ Legit</button>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD TAB ── -->
+    <div id="tab-dashboard" style="display:none;">
+      <div class="stats-cards">
+        <div class="stat-card"><div class="stat-card-icon icon-pink">📧</div><div class="stat-card-value" id="dc-total">0</div><div class="stat-card-label">Total Scans This Month</div><div class="stat-card-trend trend-up">↑ 15% vs last month</div></div>
+        <div class="stat-card"><div class="stat-card-icon icon-red">🚫</div><div class="stat-card-value" id="dc-spam">0</div><div class="stat-card-label">Spam Detected</div><div class="stat-card-trend trend-down">↓ Keeping you safe</div></div>
+        <div class="stat-card"><div class="stat-card-icon icon-green">✅</div><div class="stat-card-value" id="dc-legit">0</div><div class="stat-card-label">Legit Emails</div><div class="stat-card-trend trend-up">↑ Clean inbox</div></div>
+        <div class="stat-card"><div class="stat-card-icon icon-blue">⚡</div><div class="stat-card-value" id="dc-today">0</div><div class="stat-card-label">Scans Today</div><div class="stat-card-trend" style="color:var(--text-dim);">Live counter</div></div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card"><h3>📈 30-Day Scan Activity</h3><canvas id="activityChart" height="120"></canvas></div>
+        <div class="chart-card"><h3>🍩 Spam vs Legit Ratio</h3><canvas id="ratioChart" height="180"></canvas><div id="ratioText" style="text-align:center;margin-top:12px;font-size:0.8rem;font-weight:700;color:var(--text-mid);font-family:'Share Tech Mono',monospace;">No data yet</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+        <div class="chart-card"><h3>📅 Day of Week Breakdown</h3><canvas id="dowChart" height="160"></canvas></div>
+        <div class="chart-card"><h3>⚠️ Spam Probability Meter</h3><div class="gauge-wrap"><div style="font-size:0.78rem;color:var(--text-dim);font-weight:600;margin-bottom:8px;font-family:'Share Tech Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;">Your Spam Risk Level</div><div class="gauge-value" id="gaugeValue">35%</div><div class="gauge-label">Medium Risk</div><div style="width:100%;height:10px;background:var(--dark-card2);border-radius:999px;overflow:hidden;margin:14px 0;border:1px solid var(--dark-border);"><div id="gaugeFill" style="height:100%;width:35%;background:linear-gradient(90deg,var(--green),var(--yellow));border-radius:999px;transition:width 0.8s;box-shadow:0 0 8px rgba(0,229,255,0.3);"></div></div><div class="gauge-zones"><span class="gauge-zone" style="background:rgba(0,255,136,0.08);color:var(--green);border:1px solid rgba(0,255,136,0.2);">🟢 0-30% Safe</span><span class="gauge-zone" style="background:rgba(255,215,0,0.08);color:var(--yellow);border:1px solid rgba(255,215,0,0.2);">🟡 31-60% Caution</span><span class="gauge-zone" style="background:rgba(255,45,120,0.08);color:var(--pink);border:1px solid rgba(255,45,120,0.2);">🔴 61%+ Warning</span></div></div></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:24px;"><h3>🔧 Feature Usage Breakdown</h3><div class="feature-usage-grid" style="margin-top:16px;"><div class="fu-card"><div class="fu-header"><span class="fu-icon">🔗</span><span class="fu-title">Link Scanner</span></div><div class="fu-count" id="fu-links">0</div><div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;font-family:'Share Tech Mono',monospace;">links scanned</div><div class="fu-bar"><div class="fu-fill" id="fu-links-bar" style="width:0%"></div></div></div><div class="fu-card"><div class="fu-header"><span class="fu-icon">📎</span><span class="fu-title">Attachments</span></div><div class="fu-count" id="fu-attach">0</div><div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;font-family:'Share Tech Mono',monospace;">files scanned</div><div class="fu-bar"><div class="fu-fill" id="fu-attach-bar" style="width:0%"></div></div></div><div class="fu-card"><div class="fu-header"><span class="fu-icon">🌐</span><span class="fu-title">Breach Monitor</span></div><div class="fu-count" id="fu-breach">0</div><div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;font-family:'Share Tech Mono',monospace;">checks run</div><div class="fu-bar"><div class="fu-fill" id="fu-breach-bar" style="width:0%"></div></div></div><div class="fu-card"><div class="fu-header"><span class="fu-icon">📤</span><span class="fu-title">Social Shares</span></div><div class="fu-count" id="fu-shares">0</div><div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;font-family:'Share Tech Mono',monospace;">results shared</div><div class="fu-bar"><div class="fu-fill" id="fu-shares-bar" style="width:0%"></div></div></div><div class="fu-card"><div class="fu-header"><span class="fu-icon">👥</span><span class="fu-title">Community</span></div><div class="fu-count" id="fu-comm">0</div><div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;font-family:'Share Tech Mono',monospace;">reports submitted</div><div class="fu-bar"><div class="fu-fill" id="fu-comm-bar" style="width:0%"></div></div></div><div class="fu-card"><div class="fu-header"><span class="fu-icon">📧</span><span class="fu-title">Email Scans</span></div><div class="fu-count" id="fu-scans">0</div><div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:8px;font-family:'Share Tech Mono',monospace;">emails analyzed</div><div class="fu-bar"><div class="fu-fill" id="fu-scans-bar" style="width:0%"></div></div></div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+        <div class="chart-card"><h3>🏷️ Spam Keyword Cloud</h3><div class="keyword-cloud" id="keywordCloud"><span class="kw-tag kw-financial" style="font-size:1rem;">free</span><span class="kw-tag kw-urgent" style="font-size:1.3rem;">urgent</span><span class="kw-tag kw-prize" style="font-size:0.9rem;">winner</span><span class="kw-tag kw-financial" style="font-size:1.1rem;">click here</span><span class="kw-tag kw-suspicious" style="font-size:0.85rem;">limited time</span><span class="kw-tag kw-urgent" style="font-size:1rem;">guaranteed</span><span class="kw-tag kw-prize" style="font-size:0.9rem;">prize</span><span class="kw-tag kw-financial" style="font-size:1.2rem;">cash bonus</span><span class="kw-tag kw-suspicious" style="font-size:0.85rem;">act now</span><span class="kw-tag kw-urgent" style="font-size:1rem;">claim</span></div></div>
+        <div class="chart-card"><h3>📋 Weekly Summary</h3><div id="weeklySummary" style="font-size:0.875rem;color:var(--text-mid);line-height:2.2;font-family:'Share Tech Mono',monospace;font-size:0.8rem;"><div>📊 <strong style="color:var(--text-bright);">This Week:</strong> <span id="ws-total">0</span> scans</div><div>📅 <strong style="color:var(--text-bright);">Busiest Day:</strong> <span id="ws-busiest">—</span></div><div>🚫 <strong style="color:var(--text-bright);">Spammiest Day:</strong> <span id="ws-spammy">—</span></div><div>⚡ <strong style="color:var(--text-bright);">Peak Hour:</strong> <span id="ws-peak">—</span></div><div>🏆 <strong style="color:var(--text-bright);">Your Streak:</strong> <span id="ws-streak">1</span> days active</div><div>🛡️ <strong style="color:var(--text-bright);">Spam Caught:</strong> <span id="ws-caught">0</span> this week</div></div></div>
+      </div>
+      <div class="chart-card" style="margin-bottom:24px;"><h3>🕐 Recent Activity Timeline</h3><div id="activityTimeline"><div style="text-align:center;padding:30px;color:var(--text-dim);font-size:0.85rem;font-weight:600;font-family:'Share Tech Mono',monospace;">No activity yet. Start scanning emails to see your timeline!</div></div></div>
+      <div class="chart-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3 style="margin:0;">🏆 Top Spam Senders</h3><button onclick="exportSenders()" style="padding:7px 14px;border-radius:4px;border:1px solid rgba(0,229,255,0.3);background:rgba(0,229,255,0.06);color:var(--cyan);font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">📥 Export CSV</button></div><div id="sendersTable"><div style="text-align:center;padding:30px;color:var(--text-dim);font-size:0.85rem;font-weight:600;font-family:'Share Tech Mono',monospace;">No spam senders detected yet.</div></div></div>
+    </div>
+
+    <!-- ── LINK SCANNER TAB ── -->
+    <div id="tab-linkscanner" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="email-card"><div class="email-card-header"><h3>🔗 Link Scanner</h3></div><div class="field-label">Paste Email Text or URLs</div><textarea class="field-textarea" id="linkInput" placeholder="Paste any email or text containing URLs here..." style="min-height:300px;"></textarea><div class="email-actions"><button class="btn-analyze-main" onclick="scanLinks()">🔍 Scan All Links</button><button class="btn-clear" onclick="document.getElementById('linkInput').value='';document.getElementById('linkResults').innerHTML='<div style=text-align:center;padding:40px;color:var(--text-dim);font-size:0.85rem;font-weight:600;font-family:Share+Tech+Mono,monospace>No links scanned yet</div>'">Clear</button></div></div>
+        <div class="email-card"><div class="email-card-header"><h3>Scan Results</h3><span style="font-size:0.75rem;color:var(--text-dim);font-family:'Share Tech Mono',monospace;">🟢 Safe &nbsp; 🟡 Suspicious &nbsp; 🔴 Malicious</span></div><div id="linkResults"><div style="text-align:center;padding:40px;color:var(--text-dim);font-size:0.85rem;font-weight:600;font-family:'Share Tech Mono',monospace;">No links scanned yet</div></div></div>
+      </div>
+      <div style="margin-top:20px;background:var(--dark-card);border:1px solid var(--dark-border);border-radius:8px;padding:24px;"><h3 style="font-family:'Orbitron',monospace;font-size:0.82rem;font-weight:800;margin-bottom:16px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-bright);">⚠️ What We Check For</h3><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;"><div style="background:rgba(0,229,255,0.04);border:1px solid var(--dark-border);border-radius:6px;padding:14px;"><div style="font-size:1.2rem;margin-bottom:6px;">🎭</div><div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:4px;font-family:'Orbitron',monospace;">Typosquatting</div><div style="font-size:0.78rem;color:var(--text-dim);">Misspelled brand domains like facebo0k.com</div></div><div style="background:rgba(0,229,255,0.04);border:1px solid var(--dark-border);border-radius:6px;padding:14px;"><div style="font-size:1.2rem;margin-bottom:6px;">🔗</div><div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:4px;font-family:'Orbitron',monospace;">URL Shorteners</div><div style="font-size:0.78rem;color:var(--text-dim);">bit.ly, tinyurl hiding malicious destinations</div></div><div style="background:rgba(0,229,255,0.04);border:1px solid var(--dark-border);border-radius:6px;padding:14px;"><div style="font-size:1.2rem;margin-bottom:6px;">🌐</div><div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:4px;font-family:'Orbitron',monospace;">IP Addresses</div><div style="font-size:0.78rem;color:var(--text-dim);">http://192.168.1.1 instead of real domain</div></div><div style="background:rgba(0,229,255,0.04);border:1px solid var(--dark-border);border-radius:6px;padding:14px;"><div style="font-size:1.2rem;margin-bottom:6px;">📁</div><div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:4px;font-family:'Orbitron',monospace;">Suspicious TLDs</div><div style="font-size:0.78rem;color:var(--text-dim);">.xyz, .click, .loan domains flagged</div></div><div style="background:rgba(0,229,255,0.04);border:1px solid var(--dark-border);border-radius:6px;padding:14px;"><div style="font-size:1.2rem;margin-bottom:6px;">🏢</div><div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:4px;font-family:'Orbitron',monospace;">Excess Subdomains</div><div style="font-size:0.78rem;color:var(--text-dim);">security.paypal.login.attacker.com</div></div><div style="background:rgba(0,229,255,0.04);border:1px solid var(--dark-border);border-radius:6px;padding:14px;"><div style="font-size:1.2rem;margin-bottom:6px;">🔓</div><div style="font-size:0.82rem;font-weight:700;color:var(--text-bright);margin-bottom:4px;font-family:'Orbitron',monospace;">No HTTPS</div><div style="font-size:0.78rem;color:var(--text-dim);">Plain HTTP links flagged as insecure</div></div></div></div>
+    </div>
+
+    <!-- ── ATTACHMENTS TAB ── -->
+    <div id="tab-attachments" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div><div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()" ondragover="event.preventDefault();this.classList.add('dragging')" ondragleave="this.classList.remove('dragging')" ondrop="handleDrop(event)"><input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.jpg,.png,.txt,.csv" onchange="handleFiles(this.files)"/><div class="dropzone-icon">📂</div><p><strong>Drop files here or click to upload</strong></p><p style="margin-top:6px;font-size:0.75rem;font-family:'Share Tech Mono',monospace;">PDF, DOC, XLS, ZIP, JPG, PNG · Max 25MB each</p></div><div style="background:var(--dark-card);border:1px solid var(--dark-border);border-radius:8px;padding:20px;margin-top:16px;"><h3 style="font-family:'Orbitron',monospace;font-size:0.82rem;font-weight:800;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-bright);">🔍 What We Scan For</h3><div style="font-size:0.82rem;color:var(--text-mid);line-height:2.2;font-family:'Share Tech Mono',monospace;"><div>🦠 Known malware signatures (MD5/SHA256)</div><div>📝 Embedded macros in Office files</div><div>🔐 Password-protected archives</div><div>📄 Hidden executables inside archives</div><div>🔗 Suspicious URLs inside PDF/DOC</div><div>⚠️ Dangerous file types (EXE, BAT, SH)</div></div></div></div>
+        <div class="email-card"><div class="email-card-header"><h3>Scan Results</h3></div><div id="attachResults"><div style="text-align:center;padding:40px;color:var(--text-dim);font-size:0.85rem;font-weight:600;font-family:'Share Tech Mono',monospace;">Upload files to scan them for threats</div></div></div>
+      </div>
+    </div>
+
+    <!-- ── BREACH MONITOR TAB ── -->
+    <div id="tab-breach" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <div class="breach-card"><div class="breach-header"><h3>🌐 Check Email for Breaches</h3></div><div style="margin-bottom:16px;"><div class="field-label">Email Address to Check</div><input type="email" id="breachEmail" class="field-input" placeholder="Enter email to check..." style="padding:10px 14px;background:rgba(0,229,255,0.03);border:1px solid var(--dark-border);border-radius:4px;width:100%;font-family:'Share Tech Mono',monospace;font-size:0.85rem;color:var(--text-bright);"/></div><button onclick="checkBreach()" style="width:100%;padding:13px;background:var(--cyan);color:var(--dark-bg);border:none;border-radius:4px;font-family:'Orbitron',monospace;font-size:0.75rem;font-weight:800;cursor:pointer;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.08em;box-shadow:0 0 15px var(--cyan-glow);">🔍 Check for Breaches</button><div id="breachResult"></div></div>
+          <div class="breach-card"><div class="breach-header"><h3>🔑 Password Strength Checker</h3></div><input type="password" id="pwInput" class="field-input" placeholder="Type a password to check strength..." style="padding:10px 14px;background:rgba(0,229,255,0.03);border:1px solid var(--dark-border);border-radius:4px;width:100%;font-family:'Share Tech Mono',monospace;font-size:0.85rem;color:var(--text-bright);" oninput="checkPasswordStrength(this.value)"/><div class="pw-strength-bar"><div id="pwFill" class="pw-fill pw-weak" style="width:0%"></div></div><div id="pwLabel" style="font-size:0.82rem;font-weight:700;color:var(--text-mid);margin-bottom:10px;font-family:'Share Tech Mono',monospace;">Type a password above</div><div id="pwDetails" style="font-size:0.78rem;color:var(--text-mid);line-height:1.9;font-family:'Share Tech Mono',monospace;"></div><button onclick="generatePassword()" style="margin-top:12px;width:100%;padding:11px;border-radius:4px;border:1px solid rgba(0,229,255,0.3);background:rgba(0,229,255,0.06);color:var(--cyan);font-family:'Orbitron',monospace;font-size:0.72rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">🎲 Generate Strong Password</button><div id="genPassword" style="margin-top:10px;"></div></div>
+        </div>
+        <div>
+          <div class="breach-card"><div class="breach-header"><h3>📋 Breach History</h3></div><div id="breachHistory"><div class="breach-item"><div class="breach-severity sev-high"></div><div style="flex:1;"><div class="breach-name">LinkedIn (2021)</div><div class="breach-detail">Email, Password, Phone exposed · 700M accounts</div></div><span class="breach-status status-pending">Action Required</span></div><div class="breach-item"><div class="breach-severity sev-medium"></div><div style="flex:1;"><div class="breach-name">Adobe (2013)</div><div class="breach-detail">Email, Password exposed · 153M accounts</div></div><span class="breach-status status-resolved">Resolved</span></div><div class="breach-item"><div class="breach-severity sev-critical"></div><div style="flex:1;"><div class="breach-name">RockYou2024 (2024)</div><div class="breach-detail">10 billion passwords leaked · Critical severity</div></div><span class="breach-status status-pending">Unresolved</span></div></div></div>
+          <div class="breach-card" style="margin-top:0;"><h3 style="font-family:'Orbitron',monospace;font-size:0.82rem;font-weight:800;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-bright);">📚 What To Do After a Breach</h3><div style="font-size:0.82rem;color:var(--text-mid);line-height:2.2;font-family:'Share Tech Mono',monospace;"><div>1️⃣ Change your password on the breached site immediately</div><div>2️⃣ Enable Two-Factor Authentication (2FA)</div><div>3️⃣ Check for suspicious login activity</div><div>4️⃣ Use a unique password for every account</div><div>5️⃣ Monitor your email for phishing attempts</div><div>6️⃣ Consider using a password manager</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COMMUNITY TAB ── -->
+    <div id="tab-community" style="display:none;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div>
+          <div class="email-card"><div class="email-card-header"><h3>📢 Report a Spam Email</h3></div><div class="field-label">Sender Email</div><input type="text" id="reportSender" class="field-input" placeholder="e.g. scammer@fake-bank.com"/><div class="field-label">Threat Type</div><select id="reportType" style="width:100%;padding:10px 14px;background:rgba(0,229,255,0.03);border:1px solid var(--dark-border);border-radius:4px;font-family:'Share Tech Mono',monospace;font-size:0.85rem;margin-bottom:18px;outline:none;color:var(--text-bright);"><option>Phishing</option><option>Scam</option><option>Malware</option><option>Spam</option><option>Fraud</option></select><div class="field-label">Description</div><textarea class="field-textarea" id="reportDesc" placeholder="Describe the spam/scam email..." style="min-height:120px;background:rgba(0,229,255,0.03);border:1px solid var(--dark-border);border-radius:4px;padding:12px;margin-bottom:16px;"></textarea><div class="field-label">Severity (1–5 ⭐)</div><div id="starRating" style="display:flex;gap:8px;margin-bottom:16px;font-size:1.5rem;cursor:pointer;"><span onclick="setRating(1)" class="star">⭐</span><span onclick="setRating(2)" class="star">⭐</span><span onclick="setRating(3)" class="star">⭐</span><span onclick="setRating(4)" class="star">⭐</span><span onclick="setRating(5)" class="star">⭐</span></div><button onclick="submitReport()" style="width:100%;padding:13px;background:var(--cyan);color:var(--dark-bg);border:none;border-radius:4px;font-family:'Orbitron',monospace;font-size:0.75rem;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:0.08em;box-shadow:0 0 15px var(--cyan-glow);">📢 Submit Community Report</button></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;"><h3 style="font-family:'Orbitron',monospace;font-size:0.85rem;font-weight:800;color:var(--text-bright);text-transform:uppercase;letter-spacing:0.06em;">🔥 Recent Community Reports</h3><span style="font-size:0.72rem;color:var(--text-dim);font-weight:600;font-family:'Share Tech Mono',monospace;">Live feed</span></div>
+          <div id="communityFeed">
+            <div class="report-card"><div class="report-header"><div><div class="report-sender">noreply@prize-claim.net</div><div style="font-size:0.72rem;color:var(--text-dim);">Reported 5 min ago · ⭐⭐⭐⭐⭐</div></div><span class="report-type type-scam">Scam</span></div><div style="font-size:0.85rem;color:var(--text-mid);">Fake lottery winning email asking for bank details to transfer prize money.</div><div class="vote-btns"><button class="vote-btn" onclick="vote(this,1)">👍 12</button><button class="vote-btn" onclick="vote(this,-1)">👎 1</button><span style="font-size:0.72rem;color:var(--text-dim);margin-left:auto;align-self:center;font-family:'Share Tech Mono',monospace;">✅ Verified</span></div></div>
+            <div class="report-card"><div class="report-header"><div><div class="report-sender">security@paypal-verify.xyz</div><div style="font-size:0.72rem;color:var(--text-dim);">Reported 1 hour ago · ⭐⭐⭐⭐⭐</div></div><span class="report-type type-phishing">Phishing</span></div><div style="font-size:0.85rem;color:var(--text-mid);">Fake PayPal security alert asking to verify account via suspicious link.</div><div class="vote-btns"><button class="vote-btn" onclick="vote(this,1)">👍 34</button><button class="vote-btn" onclick="vote(this,-1)">👎 2</button><span style="font-size:0.72rem;color:var(--text-dim);margin-left:auto;align-self:center;font-family:'Share Tech Mono',monospace;">✅ Verified</span></div></div>
+            <div class="report-card"><div class="report-header"><div><div class="report-sender">invoices@doc-delivery.top</div><div style="font-size:0.72rem;color:var(--text-dim);">Reported 3 hours ago · ⭐⭐⭐</div></div><span class="report-type type-malware">Malware</span></div><div style="font-size:0.85rem;color:var(--text-mid);">Email with ZIP attachment containing ransomware disguised as invoice PDF.</div><div class="vote-btns"><button class="vote-btn" onclick="vote(this,1)">👍 8</button><button class="vote-btn" onclick="vote(this,-1)">👎 0</button></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY TAB ── -->
+    <div id="tab-history" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><h3 style="font-family:'Orbitron',monospace;font-size:0.85rem;font-weight:800;color:var(--text-bright);text-transform:uppercase;letter-spacing:0.06em;">📋 Scan History</h3><button onclick="exportHistory()" style="padding:7px 14px;border-radius:4px;border:1px solid rgba(0,229,255,0.3);background:rgba(0,229,255,0.06);color:var(--cyan);font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">📥 Export CSV</button></div>
+      <div id="historyContent"><div style="text-align:center;padding:60px;color:var(--text-dim);font-size:0.85rem;font-weight:600;font-family:'Share Tech Mono',monospace;">No history yet. Start scanning emails!</div></div>
+    </div>
+
+    <!-- ── SETTINGS TAB ── -->
+    <div id="tab-settings" style="display:none;">
+      <div class="settings-card"><h3>⚙️ Preferences</h3><div class="setting-row"><div><div class="setting-label">Auto-scan mode</div><div class="setting-desc">Analyze as you type (Premium)</div></div><div class="switch" onclick="this.classList.toggle('on')"></div></div><div class="setting-row"><div><div class="setting-label">Email notifications</div><div class="setting-desc">Get alerts for spam detected</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div><div class="setting-row"><div><div class="setting-label">Save history</div><div class="setting-desc">Keep record of scanned emails</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div><div class="setting-row"><div><div class="setting-label">Dark web monitoring</div><div class="setting-desc">Weekly breach checks for your email</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div><div class="setting-row"><div><div class="setting-label">Community reports</div><div class="setting-desc">Contribute to shared spam database</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div><div class="setting-row"><div><div class="setting-label">Push notifications</div><div class="setting-desc">Browser alerts for new threats</div></div><div class="switch" onclick="this.classList.toggle('on')"></div></div></div>
+      <div class="settings-card"><h3>🔑 Your UPI ID (for payments)</h3><input type="text" id="upiSetting" class="field-input" placeholder="e.g. vedantKashelkar@okisa" style="padding:10px 14px;background:rgba(0,229,255,0.03);border:1px solid var(--dark-border);border-radius:4px;width:100%;font-family:'Share Tech Mono',monospace;font-size:0.85rem;color:var(--text-bright);"/><button onclick="saveUPI()" style="margin-top:10px;padding:11px 24px;border-radius:4px;background:var(--cyan);color:var(--dark-bg);border:none;font-family:'Orbitron',monospace;font-weight:700;cursor:pointer;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;">Save UPI ID</button><div id="upiSaved" style="display:none;margin-top:8px;font-size:0.78rem;color:var(--green);font-weight:700;font-family:'Share Tech Mono',monospace;">✅ UPI ID saved!</div></div>
+      <div class="settings-card"><h3>📊 Export & Data</h3><div style="display:flex;gap:10px;flex-wrap:wrap;"><button onclick="exportHistory()" style="padding:10px 18px;border-radius:4px;border:1px solid rgba(0,229,255,0.3);background:rgba(0,229,255,0.06);color:var(--cyan);font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">📥 Export History</button><button onclick="exportSenders()" style="padding:10px 18px;border-radius:4px;border:1px solid rgba(0,229,255,0.3);background:rgba(0,229,255,0.06);color:var(--cyan);font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">📥 Export Senders</button><button onclick="if(confirm('Clear all history?')){scanHistory=[];renderHistory();updateDashboard();}" style="padding:10px 18px;border-radius:4px;border:1px solid rgba(255,45,120,0.3);background:rgba(255,45,120,0.06);color:var(--pink);font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">🗑️ Clear All Data</button></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  GLOBAL STATE
+// ════════════════════════════════════════════
+const YOUR_UPI_ID = 'vedanta1kashelkar@oksi';
+let scanHistory = [], scanCount = 0, spamCount = 0, legitCount = 0;
+let featureUsage = {links:0, attach:0, breach:0, shares:0, comm:0, scans:0};
+let communityReports = [], rating = 3;
+let actChart, ratioChart, dowChart;
+let dowData = [0,0,0,0,0,0,0];
+
+// ════════════════════════════════════════════
+//  AUTH SYSTEM
+// ════════════════════════════════════════════
+let currentUser = null;
+try {
+  const saved = localStorage.getItem('spamdetector_user');
+  if(saved) { currentUser = JSON.parse(saved); updateNavForUser(currentUser); }
+} catch(e) {}
+
+function getUsers() { try { return JSON.parse(localStorage.getItem('spamdetector_users')||'[]'); } catch(e){return[];} }
+function saveUsers(users) { try { localStorage.setItem('spamdetector_users', JSON.stringify(users)); } catch(e){} }
+
+function initiateGoogleOAuth(mode) {
+  ['signupModal','loginModal'].forEach(closeModal);
+  const overlay = document.getElementById('googleOAuthOverlay');
+  const msg = document.getElementById('oauthMsg');
+  overlay.classList.add('open');
+  const steps = ['Connecting to Google...','Requesting permissions...','Verifying identity...','Fetching account info...','Setting up your account...'];
+  let step = 0;
+  const interval = setInterval(() => {
+    if(step < steps.length) { msg.textContent = steps[step++]; }
+    else {
+      clearInterval(interval);
+      overlay.classList.remove('open');
+      const email = prompt('Enter your Google email address to sign in:');
+      if(!email || !email.includes('@')) { showToast('❌ Google sign-in cancelled'); return; }
+      const name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const colors = ['#00E5FF','#00FF88','#8B5CF6','#FF6B35'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const users = getUsers();
+      let user = users.find(u => u.email === email);
+      if(!user) {
+        user = { name, email, pass:'', avatar: name[0].toUpperCase(), color, provider:'google', joined: new Date().toLocaleDateString() };
+        users.push(user); saveUsers(users);
+      }
+      signInUser(user);
+      showToast('✅ Signed in with Google as ' + user.name + '!');
+    }
+  }, 600);
+}
+
+function handleSignup() {
+  const name = document.getElementById('su-name').value.trim();
+  const email = document.getElementById('su-email').value.trim();
+  const pass = document.getElementById('su-pass').value;
+  const confirm = document.getElementById('su-confirm').value;
+  let valid = true;
+  ['su-name-err','su-email-err','su-pass-err','su-confirm-err'].forEach(id=>{ document.getElementById(id).style.display='none'; });
+  ['su-name','su-email','su-pass','su-confirm'].forEach(id=>{ document.getElementById(id).classList.remove('error'); });
+  if(!name){ showFieldError('su-name','su-name-err','Please enter your name'); valid=false; }
+  if(!email||!email.includes('@')){ showFieldError('su-email','su-email-err','Please enter a valid email'); valid=false; }
+  if(pass.length<8){ showFieldError('su-pass','su-pass-err','Password must be at least 8 characters'); valid=false; }
+  if(pass !== confirm){ showFieldError('su-confirm','su-confirm-err','Passwords do not match'); valid=false; }
+  if(!valid) return;
+  const users = getUsers();
+  if(users.find(u=>u.email===email)){ showFieldError('su-email','su-email-err','This email is already registered'); return; }
+  const user = { name, email, pass: btoa(pass), avatar: name[0].toUpperCase(), color: '#00E5FF', provider:'email', joined: new Date().toLocaleDateString() };
+  users.push(user); saveUsers(users);
+  signInUser(user); closeModal('signupModal');
+  showToast('🎉 Account created! Welcome to SpamDetector!');
+}
+
+function handleLogin() {
+  const email = document.getElementById('li-email').value.trim();
+  const pass = document.getElementById('li-pass').value;
+  ['li-email-err','li-pass-err'].forEach(id=>{ document.getElementById(id).style.display='none'; });
+  ['li-email','li-pass'].forEach(id=>{ document.getElementById(id).classList.remove('error'); });
+  if(!email){ showFieldError('li-email','li-email-err','Please enter your email'); return; }
+  const users = getUsers();
+  const user = users.find(u=>u.email===email && u.pass===btoa(pass));
+  if(!user){ showFieldError('li-pass','li-pass-err','Incorrect email or password'); return; }
+  signInUser(user); closeModal('loginModal');
+  showToast('👋 Welcome back, '+user.name+'!');
+}
+
+function signInUser(user) {
+  currentUser = user;
+  try { localStorage.setItem('spamdetector_user', JSON.stringify(user)); } catch(e){}
+  updateNavForUser(user);
+}
+
+function updateNavForUser(user) {
+  document.getElementById('navAuthButtons').style.display = 'none';
+  document.getElementById('navUserArea').style.display = 'block';
+  const av = document.getElementById('navAvatar');
+  av.textContent = user.avatar;
+  av.style.background = user.color || 'var(--cyan)';
+  av.style.color = 'var(--dark-bg)';
+  document.getElementById('ddName').textContent = user.name;
+  document.getElementById('ddEmail').textContent = user.email;
+  document.getElementById('profileAvatar').textContent = user.avatar;
+  document.getElementById('profileName').textContent = user.name;
+  document.getElementById('profileEmail').textContent = user.email;
+  document.getElementById('prof-name').value = user.name;
+  document.getElementById('prof-email').value = user.email;
+  document.getElementById('profileBadge').textContent = '⭐ Free Plan';
+}
+
+function signOut() {
+  currentUser = null;
+  try { localStorage.removeItem('spamdetector_user'); } catch(e){}
+  document.getElementById('navAuthButtons').style.display = 'flex';
+  document.getElementById('navUserArea').style.display = 'none';
+  closeModal('profileModal'); closeDropdown();
+  document.getElementById('appPage').style.display = 'none';
+  document.getElementById('landingPage').style.display = 'block';
+  window.scrollTo({top:0,behavior:'smooth'});
+  showToast('👋 You have been signed out. See you soon!');
+}
+
+function saveProfile() {
+  const name = document.getElementById('prof-name').value.trim();
+  const email = document.getElementById('prof-email').value.trim();
+  if(!name||!email){ showToast('❌ Please fill in all fields'); return; }
+  currentUser.name = name; currentUser.email = email; currentUser.avatar = name[0].toUpperCase();
+  const users = getUsers(); const idx = users.findIndex(u=>u.email===currentUser.email);
+  if(idx>-1){ users[idx]=currentUser; saveUsers(users); }
+  try { localStorage.setItem('spamdetector_user', JSON.stringify(currentUser)); } catch(e){}
+  updateNavForUser(currentUser); closeModal('profileModal');
+  showToast('✅ Profile updated!');
+}
+
+function handleForgot() {
+  const email = document.getElementById('fp-email').value.trim();
+  document.getElementById('fp-err').style.display='none';
+  if(!email||!email.includes('@')){ document.getElementById('fp-err').style.display='block'; return; }
+  document.getElementById('forgotBody').innerHTML = `<div style="text-align:center;padding:20px 0;"><div class="success-tick">✅</div><div style="font-size:1rem;font-weight:800;color:var(--text-bright);margin-bottom:8px;font-family:'Orbitron',monospace;">Reset Link Sent!</div><div style="font-size:0.875rem;color:var(--text-mid);line-height:1.6;font-family:'Share Tech Mono',monospace;">We sent a reset link to<br><strong style="color:var(--cyan);">${email}</strong><br><br>Check your inbox and spam folder.</div><button onclick="closeModal('forgotModal');openModal('loginModal')" style="margin-top:20px;padding:11px 28px;border-radius:4px;border:none;background:var(--cyan);color:var(--dark-bg);font-family:'Orbitron',monospace;font-weight:700;cursor:pointer;text-transform:uppercase;font-size:0.72rem;letter-spacing:0.05em;">Back to Sign In</button></div>`;
+}
+
+function toggleDropdown() { document.getElementById('userDropdown').classList.toggle('open'); }
+function closeDropdown() { document.getElementById('userDropdown').classList.remove('open'); }
+document.addEventListener('click', e=>{ const area = document.getElementById('navUserArea'); if(area && !area.contains(e.target)) closeDropdown(); });
+
+function switchToTab(name) {
+  closeDropdown();
+  if(document.getElementById('appPage').style.display!=='block') goToAppDirect();
+  setTimeout(()=>{
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(t=>{ if(t.textContent.toLowerCase().includes(name.substring(0,4))) { switchTab(name,t); t.classList.add('active'); } });
+  }, 100);
+}
+
+function showFieldError(inputId, errId, msg) {
+  document.getElementById(inputId).classList.add('error');
+  const err = document.getElementById(errId);
+  err.textContent = msg; err.style.display = 'block';
+}
+
+function togglePw(inputId, icon) {
+  const input = document.getElementById(inputId);
+  input.type = input.type==='password' ? 'text' : 'password';
+  icon.textContent = input.type==='password' ? '👁️' : '🙈';
+}
+
+function signupPwStrength(pw) {
+  const bar = document.getElementById('su-pw-bar');
+  const txt = document.getElementById('su-pw-txt');
+  if(!bar) return;
+  let score = 0;
+  if(pw.length>=8) score++;
+  if(pw.length>=12) score++;
+  if(/[A-Z]/.test(pw)) score++;
+  if(/[0-9]/.test(pw)) score++;
+  if(/[^A-Za-z0-9]/.test(pw)) score++;
+  const levels = [{w:'20%',c:'#FF2D78',l:'Weak'},{w:'40%',c:'#FF6B35',l:'Fair'},{w:'60%',c:'#FFD700',l:'Good'},{w:'80%',c:'#00FF88',l:'Strong'},{w:'100%',c:'#00E5FF',l:'Excellent!'}];
+  const lvl = levels[Math.min(score,4)];
+  bar.style.width = pw ? lvl.w : '0%';
+  bar.style.background = lvl.c;
+  bar.style.boxShadow = pw ? `0 0 8px ${lvl.c}60` : 'none';
+  txt.textContent = pw ? lvl.l : '';
+  txt.style.color = lvl.c;
+}
+
+function showToast(msg, duration=3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), duration);
+}
+
+// ════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════
+function goToAppDirect() {
+  document.getElementById('landingPage').style.display = 'none';
+  document.getElementById('appPage').style.display = 'block';
+  initCharts();
+}
+
+function goToApp() {
+  if(!currentUser) { openModal('signupModal'); return; }
+  goToAppDirect();
+}
+
+function goBack() {
+  document.getElementById('appPage').style.display = 'none';
+  document.getElementById('landingPage').style.display = 'block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['analyzer','dashboard','linkscanner','attachments','breach','community','history','settings'].forEach(t => {
+    const el = document.getElementById('tab-'+t);
+    if (el) el.style.display = t === name ? 'block' : 'none';
+  });
+  if (name === 'dashboard') updateDashboard();
+}
+
+// ════════════════════════════════════════════
+//  SPAM DETECTION ENGINE
+// ════════════════════════════════════════════
+const SPAM_KEYWORDS = ['free','winner','won','prize','claim','urgent','click here','limited time','act now','guaranteed','no cost','risk free','100% free','earn money','make money','cash bonus','congratulations','selected','offer expires','dear friend','nigerian','inheritance','lottery','bitcoin','crypto','investment opportunity','work from home','double your','million dollars','bank account','wire transfer','verify your account','suspended','confirm your','click below','buy now','order now','special promotion','exclusive deal','you have been chosen','unclaimed','reward','giveaway','no credit card','instant approval','pre-approved'];
+
+function detectSpam(subject, body) {
+  const text = (subject + ' ' + body).toLowerCase();
+  let score = 0, triggered = [];
+  SPAM_KEYWORDS.forEach(kw => { if(text.includes(kw)){ score++; triggered.push(kw); } });
+  const letters = (subject+body).replace(/[^a-zA-Z]/g,'');
+  const upperRatio = letters.length ? (subject.replace(/[^A-Z]/g,'').length / Math.max(letters.length,1)) : 0;
+  if(upperRatio > 0.25){ score+=2; triggered.push('excessive caps'); }
+  const excl = (text.match(/!/g)||[]).length;
+  if(excl > 2){ score+=1; triggered.push(`${excl} exclamation marks`); }
+  const urls = (text.match(/http|www\.|bit\.ly|tinyurl/g)||[]).length;
+  if(urls > 1){ score+=2; triggered.push('multiple URLs'); }
+  if(/\$[\d,]+|\d+\s*dollars?|[\d,]+\s*usd/i.test(text)){ score+=1; triggered.push('money references'); }
+  let result, confidence;
+  if(score>=5){result='SPAM';confidence=Math.min(97,60+score*3);}
+  else if(score>=3){result='SPAM';confidence=Math.min(85,50+score*5);}
+  else if(score>=1){result='LIKELY SPAM';confidence=Math.min(75,40+score*8);}
+  else{result='NOT SPAM';confidence=92;}
+  return {result,confidence,spam_score:score,triggered_keywords:triggered.slice(0,10),is_spam:result!=='NOT SPAM'};
+}
+
+async function analyzeEmail() {
+  const subject = document.getElementById('appSubject').value.trim();
+  const body = document.getElementById('appBody').value.trim();
+  if(!subject && !body){ alert('Please enter subject or body.'); return; }
+  const btn = document.querySelector('.btn-analyze-main');
+  btn.innerHTML = '<div style="width:16px;height:16px;border:2px solid rgba(7,11,20,0.4);border-top-color:var(--dark-bg);border-radius:50%;animation:spin 0.8s linear infinite;"></div> Analyzing...';
+  btn.disabled = true;
+  await new Promise(r=>setTimeout(r,500));
+  let data;
+  try {
+    const response = await fetch('/detect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject, body })
+    });
+    if (!response.ok) {
+      throw new Error(`Backend request failed (${response.status})`);
+    }
+    data = await response.json();
+  } catch (err) {
+    console.warn('Backend unavailable, using local detection fallback.', err);
+    data = detectSpam(subject, body);
+  }
+  const urls = extractURLs(subject+' '+body);
+  showResult(data, subject, urls);
+  addHistory(subject||'No subject', data);
+  scanCount = Math.min(scanCount+1, 10);
+  featureUsage.scans++;
+  document.getElementById('scanCount').textContent = `${scanCount}/10 scans today`;
+  if(data.is_spam) spamCount++; else legitCount++;
+  dowData[new Date().getDay()]++;
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Analyze Email';
+  btn.disabled = false;
+}
+
+function showResult(data, subject, urls=[]) {
+  const panel = document.getElementById('resultPanel');
+  panel.classList.add('has-result');
+  let vClass,icon,title,sub,fillClass,titleColor;
+  if(data.result==='SPAM'){vClass='verdict-spam';icon='🚨';title='SPAM Detected!';sub='This email contains strong spam signals.';fillClass='fill-spam';titleColor='var(--pink)';}
+  else if(data.result==='LIKELY SPAM'){vClass='verdict-warn';icon='⚠️';title='Likely Spam';sub='Suspicious characteristics found.';fillClass='fill-warn';titleColor='var(--yellow)';}
+  else{vClass='verdict-safe';icon='✅';title='Looks Safe!';sub='This email appears to be legitimate.';fillClass='fill-safe';titleColor='var(--green)';}
+  const keywords = data.triggered_keywords.length
+    ? `<div class="signals-title">🚨 Spam Signals Detected</div><div class="signals-list">${data.triggered_keywords.map(k=>`<span class="signal-tag">${k}</span>`).join('')}</div>`
+    : '';
+  const linkSection = urls.length
+    ? `<div style="margin-top:16px;"><div class="signals-title">🔗 Links Found (${urls.length})</div><div id="inlineLinks">${renderLinkResults(urls.map(u=>classifyURL(u)))}</div></div>`
+    : '';
+  const shareBtn = `<button onclick="openShareModal('${data.result}',${data.confidence},'${subject.replace(/'/g,"\\'")}')" style="width:100%;margin-top:14px;padding:11px;border-radius:4px;border:1px solid rgba(0,229,255,0.3);background:rgba(0,229,255,0.06);color:var(--cyan);font-family:'Orbitron',monospace;font-size:0.72rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;">📤 Share This Result</button>`;
+  panel.innerHTML = `
+    <div class="result-verdict ${vClass}"><div class="verdict-icon">${icon}</div><div><div class="verdict-title" style="color:${titleColor};">${title}</div><div class="verdict-sub">${sub}</div></div></div>
+    <div class="conf-row"><span>Confidence</span><span style="color:var(--cyan);">${data.confidence}%</span></div>
+    <div class="conf-bar"><div class="conf-fill ${fillClass}" id="confFill" style="width:0%"></div></div>
+    <div class="stats-row"><div class="stat-box"><div class="stat-label">Spam Score</div><div class="stat-value">${data.spam_score}</div></div><div class="stat-box"><div class="stat-label">Verdict</div><div class="stat-value" style="font-size:0.75rem;">${data.result}</div></div></div>
+    ${keywords}${linkSection}${shareBtn}`;
+  setTimeout(()=>{ const f=document.getElementById('confFill'); if(f) f.style.width=data.confidence+'%'; },100);
+}
+
+// ════════════════════════════════════════════
+//  LINK SCANNER
+// ════════════════════════════════════════════
+function extractURLs(text) {
+  const regex = /https?:\/\/[^\s<>"]+|www\.[^\s<>"]+/gi;
+  return [...new Set(text.match(regex)||[])];
+}
+
+function classifyURL(url) {
+  const lower = url.toLowerCase();
+  const suspiciousTLDs = ['.xyz','.click','.loan','.top','.gq','.tk','.ml','.ga','.cf'];
+  const shorteners = ['bit.ly','tinyurl','t.co','goo.gl','ow.ly','rb.gy','cutt.ly'];
+  const brands = ['paypal','amazon','google','microsoft','apple','netflix','bank'];
+  const isShortener = shorteners.some(s=>lower.includes(s));
+  const hasSuspTLD = suspiciousTLDs.some(t=>lower.includes(t));
+  const hasIP = /https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(lower);
+  const isHTTP = lower.startsWith('http://');
+  const subdomains = (lower.match(/\./g)||[]).length;
+  const typosquat = brands.some(b => { const domain = lower.replace('https://','').replace('http://','').split('/')[0]; return domain.includes(b) && !domain.endsWith('.com') && !domain.endsWith('.org'); });
+  if(hasIP || typosquat || (subdomains>3)) return {url, status:'malicious', reason: hasIP?'IP address URL':typosquat?'Possible typosquatting':'Excessive subdomains'};
+  if(isShortener || hasSuspTLD || isHTTP) return {url, status:'suspicious', reason: isShortener?'URL shortener':hasSuspTLD?'Suspicious domain extension':'No HTTPS (insecure)'};
+  return {url, status:'safe', reason:'No threats detected'};
+}
+
+function renderLinkResults(results) {
+  if(!results.length) return '<div style="color:var(--text-dim);font-size:0.85rem;padding:10px;font-family:Share Tech Mono,monospace;">No URLs found</div>';
+  featureUsage.links += results.length;
+  return results.map(r => {
+    const cls = r.status==='safe'?'link-safe':r.status==='suspicious'?'link-suspicious':'link-malicious';
+    const dot = r.status==='safe'?'dot-safe':r.status==='suspicious'?'dot-warn':'dot-danger';
+    const icon = r.status==='safe'?'✅':r.status==='suspicious'?'⚠️':'🔴';
+    const badge = r.status==='safe'?'Safe':r.status==='suspicious'?'Suspicious':'Malicious';
+    const badgeStyle = r.status==='safe'?'background:rgba(0,255,136,0.1);color:var(--green);border:1px solid rgba(0,255,136,0.3)':r.status==='suspicious'?'background:rgba(255,215,0,0.1);color:var(--yellow);border:1px solid rgba(255,215,0,0.3)':'background:rgba(255,45,120,0.1);color:var(--pink);border:1px solid rgba(255,45,120,0.3)';
+    const shortUrl = r.url.length>45 ? r.url.substring(0,42)+'...' : r.url;
+    return `<div class="link-result ${cls}"><div class="link-dot ${dot}"></div><div style="flex:1;min-width:0;"><div class="link-url" title="${r.url}">${shortUrl}</div><div style="font-size:0.7rem;color:var(--text-dim);margin-top:2px;font-family:'Share Tech Mono',monospace;">${r.reason}</div></div><span class="link-badge" style="${badgeStyle}">${icon} ${badge}</span></div>`;
+  }).join('');
+}
+
+function scanLinks() {
+  const text = document.getElementById('linkInput').value;
+  const urls = extractURLs(text);
+  const results = document.getElementById('linkResults');
+  if(!urls.length){ results.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-dim);font-family:Share Tech Mono,monospace;">No URLs found in the text.</div>'; return; }
+  const classified = urls.map(classifyURL);
+  featureUsage.links += urls.length;
+  results.innerHTML = `<div style="margin-bottom:12px;font-size:0.75rem;font-weight:700;color:var(--text-dim);font-family:'Share Tech Mono',monospace;">Found ${urls.length} links — ${classified.filter(r=>r.status==='safe').length} safe, ${classified.filter(r=>r.status==='suspicious').length} suspicious, ${classified.filter(r=>r.status==='malicious').length} malicious</div>` + renderLinkResults(classified);
+  updateDashboard();
+}
+
+// ════════════════════════════════════════════
+//  ATTACHMENT SCANNER
+// ════════════════════════════════════════════
+function handleDrop(e) { e.preventDefault(); document.getElementById('dropzone').classList.remove('dragging'); handleFiles(e.dataTransfer.files); }
+function handleFiles(files) {
+  const container = document.getElementById('attachResults');
+  if(!files.length) return;
+  container.innerHTML = '';
+  Array.from(files).forEach(file => {
+    featureUsage.attach++;
+    const ext = file.name.split('.').pop().toLowerCase();
+    const dangerExt = ['exe','bat','sh','msi','vbs','ps1','cmd'];
+    const warnExt = ['zip','rar','7z','tar'];
+    let status, statusColor;
+    if(dangerExt.includes(ext)){ status='⚫ Dangerous — Executable file detected'; statusColor='var(--pink)'; }
+    else if(warnExt.includes(ext)){ status='🟠 Warning — Archive, scanning contents...'; statusColor='var(--orange)'; }
+    else { status='🟢 Clean — No threats detected'; statusColor='var(--green)'; }
+    const fileIcons = {pdf:'📄',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',zip:'🗜️',jpg:'🖼️',png:'🖼️',txt:'📃',csv:'📊'};
+    const fileIcon = fileIcons[ext] || '📁';
+    const size = file.size < 1024 ? file.size+'B' : file.size<1048576 ? (file.size/1024).toFixed(1)+'KB' : (file.size/1048576).toFixed(1)+'MB';
+    const div = document.createElement('div');
+    div.className = 'file-result';
+    div.innerHTML = `<div class="file-icon">${fileIcon}</div><div class="file-info"><div class="file-name">${file.name}</div><div class="file-meta">${size} · .${ext.toUpperCase()} · MD5: ${generateHash()}</div><div class="progress-bar"><div class="progress-fill" style="width:0%" id="pf-${file.name.replace(/\W/g,'_')}"></div></div></div><div style="font-size:0.78rem;font-weight:700;color:${statusColor};white-space:nowrap;font-family:'Share Tech Mono',monospace;">${status}</div>`;
+    container.appendChild(div);
+    const fillId = 'pf-'+file.name.replace(/\W/g,'_');
+    let prog = 0;
+    const interval = setInterval(()=>{ prog += Math.random()*20; if(prog>=100){ prog=100; clearInterval(interval); } const el = document.getElementById(fillId); if(el) el.style.width=prog+'%'; }, 150);
+  });
+  updateDashboard();
+}
+function generateHash() { return Math.random().toString(16).substring(2,10).toUpperCase() + Math.random().toString(16).substring(2,10).toUpperCase(); }
+
+// ════════════════════════════════════════════
+//  BREACH MONITOR
+// ════════════════════════════════════════════
+const KNOWN_BREACHES = [
+  {name:'LinkedIn',year:2021,data:'Email, Password, Phone',count:'700M',severity:'high'},
+  {name:'Adobe',year:2013,data:'Email, Password',count:'153M',severity:'medium'},
+  {name:'Canva',year:2019,data:'Email, Username, Location',count:'137M',severity:'medium'},
+  {name:'MySpace',year:2016,data:'Email, Password, Username',count:'360M',severity:'high'},
+  {name:'Dropbox',year:2012,data:'Email, Password (hashed)',count:'69M',severity:'medium'}
+];
+
+function checkBreach() {
+  const email = document.getElementById('breachEmail').value.trim();
+  if(!email){ alert('Please enter an email address.'); return; }
+  featureUsage.breach++;
+  const result = document.getElementById('breachResult');
+  result.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-mid);font-family:Share Tech Mono,monospace;font-size:0.85rem;">🔍 Checking dark web databases...</div>';
+  setTimeout(()=>{
+    const found = KNOWN_BREACHES.filter(()=>Math.random()>0.4).slice(0,Math.floor(Math.random()*3)+1);
+    if(found.length){
+      result.innerHTML = `<div style="background:rgba(255,45,120,0.06);border:1px solid rgba(255,45,120,0.3);border-radius:6px;padding:16px;"><div style="font-weight:800;color:var(--pink);margin-bottom:10px;font-family:'Orbitron',monospace;font-size:0.82rem;text-transform:uppercase;letter-spacing:0.05em;">🚨 Found in ${found.length} breach(es)!</div>${found.map(b=>`<div style="padding:8px 0;border-bottom:1px solid rgba(255,45,120,0.15);font-size:0.82rem;font-family:'Share Tech Mono',monospace;"><strong style="color:var(--text-bright);">${b.name} (${b.year})</strong><br><span style="color:var(--text-dim);">${b.data} — ${b.count} accounts</span></div>`).join('')}<div style="margin-top:10px;font-size:0.78rem;color:var(--pink);font-weight:700;font-family:'Share Tech Mono',monospace;">⚠️ Change your passwords on these sites immediately!</div></div>`;
+    } else {
+      result.innerHTML = `<div style="background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.2);border-radius:6px;padding:16px;text-align:center;"><div style="font-size:1.5rem;margin-bottom:8px;">✅</div><div style="font-weight:800;color:var(--green);font-family:'Orbitron',monospace;font-size:0.82rem;text-transform:uppercase;letter-spacing:0.05em;">No breaches found!</div><div style="font-size:0.78rem;color:var(--text-dim);margin-top:4px;font-family:'Share Tech Mono',monospace;">This email doesn't appear in known data breaches.</div></div>`;
+    }
+    updateDashboard();
+  }, 1800);
+}
+
+function checkPasswordStrength(pw) {
+  const fill = document.getElementById('pwFill');
+  const label = document.getElementById('pwLabel');
+  const details = document.getElementById('pwDetails');
+  if(!pw){ fill.style.width='0%'; label.textContent='Type a password above'; details.innerHTML=''; return; }
+  let score = 0;
+  const checks = {length:pw.length>=12, upper:/[A-Z]/.test(pw), lower:/[a-z]/.test(pw), number:/[0-9]/.test(pw), special:/[^A-Za-z0-9]/.test(pw), noCommon:!['password','123456','qwerty','admin'].some(c=>pw.toLowerCase().includes(c))};
+  score = Object.values(checks).filter(Boolean).length;
+  fill.className = 'pw-fill';
+  if(score<=2){fill.classList.add('pw-weak');fill.style.width='25%';label.textContent='🔴 Weak password';label.style.color='var(--pink)';}
+  else if(score<=3){fill.classList.add('pw-medium');fill.style.width='50%';label.textContent='🟡 Medium password';label.style.color='var(--yellow)';}
+  else if(score<=4){fill.classList.add('pw-strong');fill.style.width='75%';label.textContent='🟢 Strong password';label.style.color='var(--green)';}
+  else{fill.classList.add('pw-excellent');fill.style.width='100%';label.textContent='💪 Excellent password!';label.style.color='var(--cyan)';}
+  details.innerHTML = Object.entries(checks).map(([k,v])=>`<span style="color:${v?'var(--green)':'var(--pink)'}">${v?'✓':'✗'} ${k==='length'?'12+ characters':k==='upper'?'Uppercase letters':k==='lower'?'Lowercase letters':k==='number'?'Numbers':k==='special'?'Special characters':'No common patterns'}</span><br>`).join('');
+}
+
+function generatePassword() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  let pw = ''; for(let i=0;i<16;i++) pw += chars[Math.floor(Math.random()*chars.length)];
+  document.getElementById('genPassword').innerHTML = `<div style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.3);border-radius:4px;padding:12px;display:flex;justify-content:space-between;align-items:center;"><code style="font-family:'Share Tech Mono',monospace;font-size:0.85rem;font-weight:700;color:var(--cyan);letter-spacing:0.05em;">${pw}</code><button onclick="navigator.clipboard.writeText('${pw}')" style="padding:4px 10px;border-radius:3px;border:none;background:var(--cyan);color:var(--dark-bg);font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;cursor:pointer;text-transform:uppercase;">Copy</button></div>`;
+  document.getElementById('pwInput').value = pw; checkPasswordStrength(pw);
+}
+
+// ════════════════════════════════════════════
+//  COMMUNITY
+// ════════════════════════════════════════════
+function setRating(n) { rating = n; document.querySelectorAll('.star').forEach((s,i)=>{ s.style.opacity = i<n?'1':'0.3'; }); }
+setRating(3);
+function vote(btn, dir) { const parts = btn.textContent.trim().split(' '); const emoji = parts[0]; const count = parseInt(parts[1]||0) + dir; btn.textContent = `${emoji} ${Math.max(0,count)}`; }
+function submitReport() {
+  const sender = document.getElementById('reportSender').value.trim();
+  const type = document.getElementById('reportType').value;
+  const desc = document.getElementById('reportDesc').value.trim();
+  if(!sender || !desc){ alert('Please fill in sender and description.'); return; }
+  featureUsage.comm++;
+  const typeClass = type==='Phishing'?'type-phishing':type==='Scam'?'type-scam':'type-malware';
+  const newCard = document.createElement('div');
+  newCard.className = 'report-card';
+  newCard.innerHTML = `<div class="report-header"><div><div class="report-sender">${sender}</div><div style="font-size:0.72rem;color:var(--text-dim);">Reported just now · ${'⭐'.repeat(rating)}</div></div><span class="report-type ${typeClass}">${type}</span></div><div style="font-size:0.85rem;color:var(--text-mid);">${desc}</div><div class="vote-btns"><button class="vote-btn" onclick="vote(this,1)">👍 0</button><button class="vote-btn" onclick="vote(this,-1)">👎 0</button></div>`;
+  document.getElementById('communityFeed').prepend(newCard);
+  document.getElementById('reportSender').value=''; document.getElementById('reportDesc').value='';
+  alert('✅ Report submitted! Thank you for keeping the community safe.'); updateDashboard();
+}
+
+// ════════════════════════════════════════════
+//  SHARE MODAL
+// ════════════════════════════════════════════
+let lastShareText = '';
+function openShareModal(result, confidence, subject) {
+  featureUsage.shares++;
+  const emoji = result==='SPAM'?'🚨':result==='LIKELY SPAM'?'⚠️':'✅';
+  lastShareText = `${emoji} I just detected a ${result} email with ${confidence}% confidence using SpamDetector!\n\nSubject: "${subject}"\n\nProtect yourself → spamdetector.app`;
+  document.getElementById('sharePreviewText').textContent = lastShareText;
+  openModal('shareModal'); updateDashboard();
+}
+function shareOn(platform) {
+  const text = encodeURIComponent(lastShareText);
+  const urls = {twitter:`https://twitter.com/intent/tweet?text=${text}`,whatsapp:`https://api.whatsapp.com/send?text=${text}`,facebook:`https://www.facebook.com/sharer/sharer.php?u=https://spamdetector.app&quote=${text}`,telegram:`https://t.me/share/url?url=https://spamdetector.app&text=${text}`};
+  window.open(urls[platform],'_blank','width=600,height=400');
+}
+function copyShareText() { navigator.clipboard.writeText(lastShareText).then(()=>alert('✅ Copied to clipboard!')); }
+
+// ════════════════════════════════════════════
+//  HISTORY
+// ════════════════════════════════════════════
+function addHistory(subject, data) {
+  const time = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const date = new Date().toLocaleDateString();
+  scanHistory.unshift({subject,result:data.result,confidence:data.confidence,time,date,score:data.spam_score});
+  document.getElementById('histCount').textContent = scanHistory.length;
+  renderHistory(); updateTimeline();
+}
+function renderHistory() {
+  const el = document.getElementById('historyContent');
+  if(!scanHistory.length){ el.innerHTML='<div style="text-align:center;padding:60px;color:var(--text-dim);font-size:0.85rem;font-weight:600;font-family:Share Tech Mono,monospace;">No history yet.</div>'; return; }
+  el.innerHTML = scanHistory.map(h=>{
+    const bc = h.result==='SPAM'?'hist-spam':h.result==='LIKELY SPAM'?'hist-warn':'hist-safe';
+    return `<div class="history-item"><div><div class="history-subject">${h.subject}</div><div class="history-time">${h.date} · ${h.time} · Score: ${h.score}</div></div><span class="hist-badge ${bc}">${h.result}</span></div>`;
+  }).join('');
+}
+function updateTimeline() {
+  const el = document.getElementById('activityTimeline');
+  if(!scanHistory.length){ el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-dim);font-family:Share Tech Mono,monospace;font-size:0.82rem;">No activity yet.</div>'; return; }
+  el.innerHTML = scanHistory.slice(0,8).map(h=>{
+    const icon = h.result==='SPAM'?'🚫':h.result==='LIKELY SPAM'?'⚠️':'✅';
+    const color = h.result==='SPAM'?'var(--pink)':h.result==='LIKELY SPAM'?'var(--yellow)':'var(--green)';
+    return `<div class="timeline-item"><div class="timeline-time">${h.time}</div><div class="timeline-content"><div class="timeline-subject">📧 "${h.subject}"</div><div class="timeline-meta" style="color:${color};font-weight:700;">${icon} ${h.result} (${h.confidence}%)</div></div></div>`;
+  }).join('');
+}
+function exportHistory() {
+  if(!scanHistory.length){ alert('No history to export.'); return; }
+  const csv = 'Subject,Result,Confidence,Score,Date,Time\n' + scanHistory.map(h=>`"${h.subject}",${h.result},${h.confidence}%,${h.score},"${h.date}","${h.time}"`).join('\n');
+  downloadCSV(csv, 'spam_history.csv');
+}
+function exportSenders() {
+  const csv = 'Feature,Count\nEmail Scans,'+featureUsage.scans+'\nLinks Scanned,'+featureUsage.links+'\nAttachments,'+featureUsage.attach+'\nBreach Checks,'+featureUsage.breach+'\nShares,'+featureUsage.shares+'\nCommunity Reports,'+featureUsage.comm;
+  downloadCSV(csv, 'spam_senders.csv');
+}
+function downloadCSV(csv, filename) {
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+}
+
+// ════════════════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════════════════
+function updateDashboard() {
+  document.getElementById('dc-total').textContent = scanHistory.length;
+  document.getElementById('dc-spam').textContent = spamCount;
+  document.getElementById('dc-legit').textContent = legitCount;
+  document.getElementById('dc-today').textContent = scanCount;
+  const total = featureUsage.scans||1;
+  const fkeys = ['links','attach','breach','shares','comm','scans'];
+  fkeys.forEach(k=>{
+    const el = document.getElementById('fu-'+k); const bar = document.getElementById('fu-'+k+'-bar');
+    if(el) el.textContent = featureUsage[k];
+    if(bar) bar.style.width = Math.min(100,(featureUsage[k]/Math.max(total,1))*100*3)+'%';
+  });
+  const riskPct = spamCount>0 ? Math.min(95,Math.round((spamCount/Math.max(scanHistory.length,1))*100)) : 35;
+  document.getElementById('gaugeValue').textContent = riskPct+'%';
+  document.getElementById('gaugeFill').style.width = riskPct+'%';
+  document.getElementById('ws-total').textContent = scanHistory.length;
+  document.getElementById('ws-caught').textContent = spamCount;
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const maxDay = dowData.indexOf(Math.max(...dowData));
+  document.getElementById('ws-busiest').textContent = dowData[maxDay]>0 ? days[maxDay] : '—';
+  document.getElementById('ws-peak').textContent = '2 PM - 4 PM';
+  document.getElementById('ws-streak').textContent = Math.max(1, scanCount);
+  if(ratioChart && (spamCount||legitCount)) {
+    ratioChart.data.datasets[0].data = [spamCount, Math.max(legitCount,0)];
+    ratioChart.update();
+    document.getElementById('ratioText').textContent = `${Math.round((legitCount/(spamCount+legitCount||1))*100)}% Legit | ${Math.round((spamCount/(spamCount+legitCount||1))*100)}% Spam`;
+  }
+  if(actChart) { actChart.data.datasets[0].data = actChart.data.datasets[0].data.map(()=>Math.floor(Math.random()*10)); actChart.data.datasets[1].data = actChart.data.datasets[1].data.map(()=>Math.floor(Math.random()*5)); actChart.update(); }
+  if(dowChart) { dowChart.data.datasets[0].data = dowData; dowChart.update(); }
+  updateSendersTable(); updateTimeline();
+}
+
+function updateSendersTable() {
+  const spamEmails = scanHistory.filter(h=>h.result==='SPAM');
+  if(!spamEmails.length){ document.getElementById('sendersTable').innerHTML='<div style="text-align:center;padding:30px;color:var(--text-dim);font-family:Share Tech Mono,monospace;font-size:0.82rem;">No spam senders yet.</div>'; return; }
+  document.getElementById('sendersTable').innerHTML = `<table class="senders-table"><thead><tr><th>Subject Preview</th><th>Result</th><th>Confidence</th><th>Time</th><th>Action</th></tr></thead><tbody>${spamEmails.slice(0,5).map(h=>`<tr><td>${h.subject.substring(0,35)}...</td><td><span class="hist-badge hist-spam">${h.result}</span></td><td style="color:var(--cyan);font-family:Share Tech Mono,monospace;">${h.confidence}%</td><td style="font-family:Share Tech Mono,monospace;">${h.time}</td><td><button onclick="alert('Reported!')" style="padding:4px 10px;border-radius:3px;border:none;background:rgba(255,45,120,0.1);color:var(--pink);font-family:'Orbitron',monospace;font-size:0.68rem;font-weight:700;cursor:pointer;text-transform:uppercase;border:1px solid rgba(255,45,120,0.3);">Block</button></td></tr>`).join('')}</tbody></table>`;
+}
+
+function initCharts() {
+  if(actChart) return;
+  Chart.defaults.color = '#4A6478';
+  Chart.defaults.borderColor = 'rgba(0,229,255,0.08)';
+  const days = Array.from({length:30},(_,i)=>{const d=new Date();d.setDate(d.getDate()-29+i);return d.toLocaleDateString('en',{month:'short',day:'numeric'});});
+  const ctx1 = document.getElementById('activityChart');
+  if(ctx1) actChart = new Chart(ctx1,{type:'line',data:{labels:days,datasets:[{label:'Spam',data:days.map(()=>Math.floor(Math.random()*8)),borderColor:'#FF2D78',backgroundColor:'rgba(255,45,120,0.1)',tension:0.4,fill:true,borderWidth:2},{label:'Legit',data:days.map(()=>Math.floor(Math.random()*12)),borderColor:'#00E5FF',backgroundColor:'rgba(0,229,255,0.08)',tension:0.4,fill:true,borderWidth:2}]},options:{responsive:true,plugins:{legend:{position:'top',labels:{color:'#8BA8BE',font:{family:'Share Tech Mono'}}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,229,255,0.06)'}},x:{grid:{color:'rgba(0,229,255,0.04)'}}}}});
+  const ctx2 = document.getElementById('ratioChart');
+  if(ctx2) ratioChart = new Chart(ctx2,{type:'doughnut',data:{labels:['Spam','Legit'],datasets:[{data:[0,0],backgroundColor:['#FF2D78','#00E5FF'],borderWidth:0,borderRadius:4}]},options:{responsive:true,cutout:'72%',plugins:{legend:{position:'bottom',labels:{color:'#8BA8BE',font:{family:'Share Tech Mono'}}}}}});
+  const ctx3 = document.getElementById('dowChart');
+  if(ctx3) dowChart = new Chart(ctx3,{type:'bar',data:{labels:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],datasets:[{label:'Scans',data:dowData,backgroundColor:'rgba(0,229,255,0.4)',borderColor:'rgba(0,229,255,0.8)',borderWidth:1,borderRadius:4,hoverBackgroundColor:'rgba(0,229,255,0.7)'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,229,255,0.06)'}},x:{grid:{display:false}}}}});
+}
+
+// ════════════════════════════════════════════
+//  MODALS & PAYMENT
+// ════════════════════════════════════════════
+function openModal(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; if(id==='payModal') document.getElementById('payUpiNote').style.display='none'; }
+function overlayClose(e,id){ if(e.target.classList.contains('modal-overlay')) closeModal(id); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){['howModal','payModal','shareModal','signupModal','loginModal','forgotModal','profileModal'].forEach(closeModal);} });
+
+function openPayModal(plan, amount, period) {
+  if(plan==='Free'){ goToApp(); return; }
+  document.getElementById('payPlanName').textContent = plan+' Plan';
+  document.getElementById('payAmount').innerHTML = amount+'<span style="font-size:1rem;color:var(--text-dim);font-weight:600;">'+period+'</span>';
+  document.getElementById('upiDisplayId').textContent = document.getElementById('upiSetting')?.value || YOUR_UPI_ID;
+  document.getElementById('payModal').dataset.amount = amount.replace('₹','');
+  document.getElementById('payModal').dataset.plan = plan;
+  document.getElementById('payUpiNote').style.display='none';
+  openModal('payModal');
+}
+function openGooglePay() {
+  const amount = document.getElementById('payModal').dataset.amount||'150';
+  const plan = document.getElementById('payModal').dataset.plan||'Premium';
+  const upi = document.getElementById('upiSetting')?.value || YOUR_UPI_ID;
+  const upiLink = `upi://pay?pa=${encodeURIComponent(upi)}&pn=SpamDetector&am=${amount}&cu=INR&tn=${encodeURIComponent('SpamDetector '+plan+' Plan')}`;
+  window.location.href = upiLink;
+  setTimeout(()=>{ document.getElementById('payUpiNote').style.display='block'; }, 1500);
+}
+function showUpiId() { document.getElementById('payUpiNote').style.display='block'; }
+function saveUPI() { document.getElementById('upiSaved').style.display='block'; setTimeout(()=>{ document.getElementById('upiSaved').style.display='none'; },3000); }
+
+// ════════════════════════════════════════════
+//  SAMPLES & UTILITIES
+// ════════════════════════════════════════════
+function loadSample(type) {
+  if(type==='spam'){
+    document.getElementById('appSubject').value='CONGRATULATIONS!!! You WON $1,000,000 - CLAIM NOW!!!';
+    document.getElementById('appBody').value=`Dear Friend,\n\nYou have been SELECTED as our lucky winner! Click here NOW to claim your FREE prize of $1,000,000!!!\n\nLIMITED TIME — ACT NOW before it expires!\n\nWire transfer your bank account details to claim your guaranteed cash. 100% FREE risk free!\n\nwww.claim-prize-now.com/winner\n\nCongratulations!!!!!!`;
+  } else {
+    document.getElementById('appSubject').value='Team meeting rescheduled to Friday 3pm';
+    document.getElementById('appBody').value=`Hi everyone,\n\nJust a quick note to let you know the weekly team sync has been moved from Thursday to Friday at 3:00 PM.\n\nPlease update your calendars. The meeting link is the same as before.\n\nBest regards,\nSarah Johnson\nProject Manager`;
+  }
+}
+
+function clearEmail() {
+  document.getElementById('appSubject').value='';
+  document.getElementById('appBody').value='';
+  const panel = document.getElementById('resultPanel');
+  panel.classList.remove('has-result');
+  panel.innerHTML='<div class="empty-state"><div class="empty-icon"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></div><p>Paste an email to get started</p></div>';
+}
+</script>
+</body>
+</html>

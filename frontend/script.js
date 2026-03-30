@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000';
+const API_URL = 'https://spam-detector-3-z7p0.onrender.com';
 let history = [];
 
 async function analyzeEmail() {

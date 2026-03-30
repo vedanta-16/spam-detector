@@ -351,7 +351,7 @@ def index():
 
 if __name__ == '__main__':
     print("\nSpamDetector Backend Starting...")
-    print("URL  :  http://localhost:5000")
+    print("URL  :  https://spam-detector-3-z7p0.onrender.com")
     print("Test :  http://localhost:5000/")
     print("Stop :  CTRL + C\n")
     app.run(debug=True, port=5000)
